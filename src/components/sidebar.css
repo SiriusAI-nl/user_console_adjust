@@ -1,0 +1,22 @@
+/* Import the Montserrat font from Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@100;200;300;400;500;600;700;800;900&display=swap');
+
+/* Custom styling for MUI icons */
+.css-1umw9bq-MuiSvgIcon-root {
+    color: #340061;  /* Set the icon color */
+}
+
+/* Apply Montserrat font to the body */
+body {
+    font-family: "Montserrat";  /* Default font for the body */
+}
+
+/* Styling for MUI Typography inside List Items */
+.css-1igxbu9-MuiListItemText-root .MuiListItemText-primary {
+    color: #000000;  /* Set the text color */
+    font-family: "Montserrat";  /* Ensure typography also uses Montserrat */
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 25px;
+    
+}
