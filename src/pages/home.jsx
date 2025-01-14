@@ -57,7 +57,7 @@ function Home (){
     ]
   return (
     <>
-    <div id='main' className='w-full flex-col pl-[60px] pr-[30px] item-center justify-between'>
+    <div id='main' className='w-full flex-col pl-[60px] pr-[30px] item-center justify-between bg-gray-100'>
      <div id='uper-section'>
         </div> 
      <div id='lower-section' className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 w-full justify-between gap-[20px]'>

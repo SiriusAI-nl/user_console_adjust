@@ -5,6 +5,7 @@ import { MdOutlineEmail } from "react-icons/md";
 import { CiLock } from "react-icons/ci";
 import { FaEye } from "react-icons/fa";
 import { FaEyeSlash } from "react-icons/fa";
+import { Link } from "react-router-dom";
 
 const SignUp = () => {
     const [show, setShow] = useState(false)
@@ -15,9 +16,9 @@ const SignUp = () => {
   return (
     <div className="w-full max-h-screen flex">
 <div className="w-full bg-white flex flex-col justify-center items-center md:w-[50%] lg:w-[40%]" id="leftside">
-        <div className="sm-max-screen flex items-center flex-col px-6 justify-center text-center">
-          <div className="flex lg:justify-start justify-center items-center mb-[25px] md:mb-[60px] mt-[40px] md:mt-[60px] w-full">
-            <img src="./public/images/Sirius AI.png" alt="" />
+        <div className="sm:max-screen flex items-center flex-col px-6 justify-center text-center lg:w-[80%]">
+          <div className="flex lg:justify-start justify-center items-center mb-[25px] md:mb-[60px] mt-[40px] md:mt-[60px] ">
+            <img src="./images/Sirius-AI.png" alt="" />
           </div>
 <form id="form" className="w-full">
           <div className="flex flex-col items-center w-full">
@@ -63,7 +64,7 @@ const SignUp = () => {
             </button>
           </div>
           </form>
-          <div className="mt-[20px] flex justify-center items-center text-center"><h1 className="font-Montserrat font-[400] text-[#666666]">Already have an account? <a href="" className="font-Montserrat font-[400] text-black"> Login</a></h1></div>
+          <div className="mt-[20px] flex justify-center items-center text-center"><h1 className="font-Montserrat font-[400] text-[#666666]">Already have an account? <Link to="/" className="font-Montserrat font-[400] text-black"> Login</Link></h1></div>
         </div>
       </div>
 

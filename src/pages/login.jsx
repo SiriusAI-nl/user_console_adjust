@@ -25,7 +25,7 @@ function handlePassword(){
       >
         <div className="sm-max-screen flex items-center flex-col px-6 justify-center text-center">
           <div className="flex lg:justify-start justify-center items-center mb-[60px] mt-[60px] w-full">
-            <img src="./public/images/Sirius AI.png" alt="" />
+            <img src="./images/Sirius-AI.png" alt="" />
           </div>
           <form onSubmit={(e) => {
             e.preventDefault()
