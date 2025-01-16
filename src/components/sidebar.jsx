@@ -11,13 +11,14 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+
 import { FaPersonHalfDress } from "react-icons/fa6";
 import { LuArrowDownToLine } from "react-icons/lu";
 import { BiSolidBookmarkStar } from "react-icons/bi";
 
 
 
-const drawerWidth = 300;
+const drawerWidth = 240;
 
 const openedMixin = (theme) => ({
   width: drawerWidth,
@@ -31,7 +32,7 @@ const openedMixin = (theme) => ({
 const closedMixin = (theme) => ({
   transition: theme.transitions.create('width', {
     easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen,
+    duration: theme.transitions.duration.leavingScreen, 
   }),
   overflowX: 'hidden',
   width: `calc(${theme.spacing(7)} + 1px)`,
@@ -48,99 +49,108 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   ...theme.mixins.toolbar,
 }));
 
-const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'menuOpen' })(
-  ({ theme, menuOpen }) => ({
+const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
+  ({ theme, open }) => ({
     width: drawerWidth,
     flexShrink: 0,
     whiteSpace: 'nowrap',
     boxSizing: 'border-box',
-    ...(menuOpen && {
+    ...(open && {
       ...openedMixin(theme),
       '& .MuiDrawer-paper': openedMixin(theme),
     }),
-    ...(!menuOpen && {
+    ...(!open && {
       ...closedMixin(theme),
       '& .MuiDrawer-paper': closedMixin(theme),
     }),
   })
 );
 
-function Sidebar({setMenuOpen,menuOpen}) {
+function Sidebar({ setMenuOpen, menuOpen }) {
   const [activeItem, setActiveItem] = useState(null);
   const theme = useTheme();
-  
+
 
   const handleDrawerToggle = () => {
     setMenuOpen((prev) => !prev);
   };
 
   const dataArr = [
-    { name: "Agents", icon: <FaPersonHalfDress />},
-    { name: "Download", icon: <LuArrowDownToLine /> },
-    { name: "Save", icon: <BiSolidBookmarkStar /> },
+    { name: "Agents", icon: "/images/user_agent.png" },
+    { name: "Download", icon: "/images/download.png" },
+    { name: "Save", icon: "/images/save.png" },
   ];
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh' }}>
+    <Box
+      className={`flex h-screen transition-all duration-300 ${menuOpen ? 'w-[266px]' : 'w-[40px]'}`}
+    >
       {/* Sidebar Drawer */}
-      <Drawer variant="permanent" menuOpen={menuOpen}>
-        <DrawerHeader>
-          <IconButton onClick={handleDrawerToggle}>
+      <Drawer variant="permanent" open={menuOpen}>
+        <DrawerHeader style={{paddingLeft: "10px"}}>
+          <IconButton className='mr-[20px]' onClick={handleDrawerToggle}>
             <MenuIcon />
           </IconButton>
         </DrawerHeader>
         <Divider />
-       
-<List>
-  {dataArr.map(({ name, icon }) => (
-    <ListItem key={name} disablePadding sx={{ display: 'block' }}>
-      <ListItemButton
-        className={`list-item-button ${activeItem === name ? 'active' : ''}`}
-        sx={{
-          minHeight: 48,
-          justifyContent: menuOpen ? 'initial' : 'center',
-          px: 0.5,
-          width: '80%',
-          margin: '0 20px 0 10px',
-          borderRadius: '8px',
-          transition: 'background-color 0.3s ease, color 0.3s ease',
-          backgroundColor: activeItem === name ? '#340061' : 'transparent',
-          '&:hover': {
-            backgroundColor: '#340061',
-            color:'white',
-          },
-        }}
-        onClick={() => setActiveItem(name)}
-      >
-        <ListItemIcon
-          sx={{
-            minWidth: 0,
-            justifyContent: 'center',
-            mr: menuOpen ? 3 : 'auto',
-            color: activeItem === name ? 'white' : 'inherit', // Change icon color on active
-            transition: 'color 0.3s ease',
-            '&:hover': {
-              color: 'white', // Icon color change on hover
-            },
-          }}
-        >
-          {icon}
-        </ListItemIcon>
-        <ListItemText
-          primary={name}
-          sx={{
-            opacity: menuOpen ? 1 : 0,
-            color: activeItem === name ? 'white' : 'inherit', // Change text color on active
-            transition: 'color 0.3s ease',
-            '&:hover': {
-              color: 'white', // Text color change on hover
-            },
-          }}
-        />
-      </ListItemButton>
-    </ListItem>
-  ))}
-</List>
+
+        <List style={{marginTop: "100px",width: menuOpen ? "100%" : "80%", }}>
+          {dataArr.map(({ name, icon }) => (
+            <ListItem key={name} disablePadding sx={{ display: 'block' }}>
+              <ListItemButton
+                className={`group list-item-button`}
+                sx={{
+                  minHeight: 48,
+                  justifyContent: "center",
+                  px: 2,
+                  width: "89%",
+                  marginInline: menuOpen ? '28px' : "10px",
+                  borderRadius: '8px',
+                  transition: 'background-color 0.3s ease, color 0.3s ease',
+                  '&:hover': {
+                    backgroundColor: '#340061',
+                    color: 'white',
+                  },
+                  borderRadius: "8px"
+                }}
+              >
+                <ListItemIcon
+                  sx={{
+                    border: "none",
+                    minWidth: 0,
+                    justifyContent: 'center',
+                    mr: menuOpen ? "18px" : 'auto',
+                    color: "white",
+                    transition: 'color 0.3s ease',
+                    '&:hover': {
+                      color: 'white', 
+                    },
+                  }}
+                >
+                  <img
+                    src={icon}
+                    alt=""
+                    className={`${menuOpen && "ml-[5px]"} w-[20px] h-[20px] transition duration-300 ease-in-out group-hover:invert group-hover:grayscale group-hover:brightness-50`}
+                  />
+
+
+
+                </ListItemIcon>
+                <ListItemText
+                  primary={name}
+                  sx={{
+                    opacity: menuOpen ? 1 : 0,
+                    color: activeItem === name ? 'white' : 'inherit', // Change text color on active
+                    transition: 'color 0.3s ease',
+                    '&:hover': {
+                      color: 'white', // Text color change on hover
+                    },
+                  }}
+                />
+              </ListItemButton>
+            </ListItem>
+          ))}
+        </List>
 
 
 

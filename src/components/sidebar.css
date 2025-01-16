@@ -16,9 +16,6 @@
 body {
     font-family: "Montserrat";  /* Default font for the body */
 }
-ul.MuiList-root{
-    padding-top: 60px;
-}
 
 /* Styling for MUI Typography inside List Items */
 .css-1igxbu9-MuiListItemText-root .MuiListItemText-primary {

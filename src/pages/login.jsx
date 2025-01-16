@@ -40,10 +40,10 @@ function handlePassword(){
               </p>
               <div className="flex flex-col gap-8 w-full">
            <div id="inputOne" className="border border-1 border-[#34006114] w-full py-[12px] px-[16px]  rounded-[8px] flex gap-[15px] items-center"> 
-           <CiUser className="text-2xl" />
+           <CiUser className="text-2xl text-[#6E7079]" />
             <input type="text" placeholder="Username"  className="font-Montserrat text-[#ACACAC] text-[12px] w-full outline-none"/>
          </div> 
-               <div id="inputTwo" className="border border-1 border-[#34006114] w-full py-[12px] px-[16px]  rounded-[8px] justify-between flex gap-[15px] items-center"><div className="flex items-center gap-[15px]"><CiLock className="text-2xl"/>
+               <div id="inputTwo" className="border border-1 border-[#34006114] w-full py-[12px] px-[16px]  rounded-[8px] justify-between flex gap-[15px] items-center"><div className="flex items-center gap-[15px]"><CiLock className="text-2xl text-[#6E7079]"/>
                <input type={showtext? "text" :"password"} placeholder="password"  className="font-Montserrat text-[#ACACAC] text-[12px] w-full outline-none"/></div>
                 
               <p onClick={handlePassword}>{showtext? <FaEye className="text-[#34006114]"/>:<FaEyeSlash className="text-[#34006114]"/>}</p> 
