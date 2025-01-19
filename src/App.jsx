@@ -13,14 +13,15 @@ import { ThemeProvider } from "@/components/theme-provider"
 
 function App() {
   const [menuOpen, setMenuOpen] = useState(false)
+      const [isBtn, setIsBtn] = useState(false)
   return (
     <BrowserRouter>
       {/* <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme"> */}
         <Routes>
           <Route path='/' element={<Login />} />
           <Route path='/signup' element={<Signup />} />
-          <Route path='/home' element={<Layout setMenuOpen={setMenuOpen} menuOpen={menuOpen}><Outlet /></Layout>}>
-            <Route index element={<MainPage setMenuOpen={setMenuOpen} />} />
+          <Route path='/home' element={<Layout isBtn={isBtn} setIsBtn={setIsBtn} setMenuOpen={setMenuOpen} menuOpen={menuOpen}><Outlet /></Layout>}>
+            <Route index element={<MainPage isBtn={isBtn} setIsBtn={setIsBtn} setMenuOpen={setMenuOpen} />} />
             <Route path="main" element={<Home/>} />
           </Route>
         </Routes>

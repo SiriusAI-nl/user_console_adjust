@@ -8,4 +8,4 @@ npm run dev
 
 The server will start, and the application will be accessible at:
 
-http://localhost:5173 
+http://localhost:5173

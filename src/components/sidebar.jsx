@@ -32,7 +32,7 @@ const openedMixin = (theme) => ({
 const closedMixin = (theme) => ({
   transition: theme.transitions.create('width', {
     easing: theme.transitions.easing.sharp,
-    duration: theme.transitions.duration.leavingScreen, 
+    duration: theme.transitions.duration.leavingScreen,
   }),
   overflowX: 'hidden',
   width: `calc(${theme.spacing(7)} + 1px)`,
@@ -66,7 +66,7 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' 
   })
 );
 
-function Sidebar({ setMenuOpen, menuOpen }) {
+function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
   const [activeItem, setActiveItem] = useState(null);
   const theme = useTheme();
 
@@ -83,18 +83,18 @@ function Sidebar({ setMenuOpen, menuOpen }) {
 
   return (
     <Box
-      className={`flex h-screen transition-all duration-300 ${menuOpen ? 'w-[266px]' : 'w-[40px]'}`}
+      className={`${isBtn && "absolute"} flex h-screen transition-all duration-300 ${menuOpen ? 'w-[266px]' : 'w-[40px]'}`}
     >
       {/* Sidebar Drawer */}
       <Drawer variant="permanent" open={menuOpen}>
-        <DrawerHeader style={{paddingLeft: "10px"}}>
+        <DrawerHeader style={{ paddingLeft: "10px" }}>
           <IconButton className='mr-[20px]' onClick={handleDrawerToggle}>
             <MenuIcon />
           </IconButton>
         </DrawerHeader>
         <Divider />
 
-        <List style={{marginTop: "100px",width: menuOpen ? "100%" : "80%", }}>
+        <List style={{ marginTop: "100px", width: menuOpen ? "100%" : "80%"}}>
           {dataArr.map(({ name, icon }) => (
             <ListItem key={name} disablePadding sx={{ display: 'block' }}>
               <ListItemButton
@@ -104,7 +104,7 @@ function Sidebar({ setMenuOpen, menuOpen }) {
                   justifyContent: "center",
                   px: 2,
                   width: "89%",
-                  marginInline: menuOpen ? '28px' : "10px",
+                  marginInline: menuOpen ? '12px' : "10px",
                   borderRadius: '8px',
                   transition: 'background-color 0.3s ease, color 0.3s ease',
                   '&:hover': {
@@ -123,7 +123,7 @@ function Sidebar({ setMenuOpen, menuOpen }) {
                     color: "white",
                     transition: 'color 0.3s ease',
                     '&:hover': {
-                      color: 'white', 
+                      color: 'white',
                     },
                   }}
                 >

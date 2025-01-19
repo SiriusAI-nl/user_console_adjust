@@ -3,7 +3,7 @@ import { SlClose } from "react-icons/sl";
 import { TbWorldBolt } from "react-icons/tb";
 import { Link } from 'react-router-dom';
 
-const Starting = ({ isPlanning, setIsPlanning }) => {
+const Starting = ({ isPlanning, setIsPlanning, isBtn }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -11,12 +11,13 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
       setTimeout(() => {
         setLoading(false)
       }, 2000)
-    }else{
+    } else {
       setLoading(true)
     }  
   }, [isPlanning])
+
   return (
-    <div className={`h-full ${isPlanning ? "flex min-w-[60%]" : "hidden"} py-[30px] px-[30px] flex-col gap-4 border-[1px] dark:border-white border-[#340061] rounded-[10px] pb-[150px]`}>
+    <div className={`${isBtn && " bg-red-500 absolute top-0 left-0"} h-full flex py-[30px] px-[30px] flex-col gap-4 border-[1px] dark:border-white border-[#340061] rounded-[10px] pb-[150px]`}>
       <div className='flex w-full mb-[20px] justify-between' >
         <h1 className='dark:text-white text-[#000000] font-Montserrat font-[400] text-[16px]'>Starting research</h1>
         <SlClose className='text-2xl dark:text-white text-[#340061] cursor-pointer' onClick={() => setIsPlanning(false)} />
@@ -51,3 +52,4 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
 };
 
 export default Starting;
+
