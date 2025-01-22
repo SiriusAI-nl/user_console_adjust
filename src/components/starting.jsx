@@ -17,12 +17,12 @@ const Starting = ({ isPlanning, setIsPlanning, isBtn }) => {
   }, [isPlanning])
 
   return (
-    <div className={`${isBtn && " bg-red-500 absolute top-0 left-0"} h-full flex py-[30px] px-[30px] flex-col gap-4 border-[1px] dark:border-white border-[#340061] rounded-[10px] pb-[150px]`}>
+    <div className={` h-full hidden md:flex py-[30px] px-[30px] flex-col gap-4 border-[1px] dark:border-white border-gray-700 hover:border-purple-500 rounded-[10px] pb-[150px] bg-[#1F2937]`}>
       <div className='flex w-full mb-[20px] justify-between' >
-        <h1 className='dark:text-white text-[#000000] font-Montserrat font-[400] text-[16px]'>Starting research</h1>
-        <SlClose className='text-2xl dark:text-white text-[#340061] cursor-pointer' onClick={() => setIsPlanning(false)} />
+        <h1 className='dark:text-white text-gray-300 font-Montserrat font-[400] text-[16px]'>Starting research</h1>
+        <SlClose className='text-2xl dark:text-white text-gray-300 cursor-pointer hover:text-purple-500' onClick={() => setIsPlanning(false)} />
       </div>
-      <p className='dark:text-white text-[#6E7079] font-Montserrat text-[16px] font-[500] mb-[30px]'>Conduct Al marketing research for benchmarking in 2025</p>
+      <p className='dark:text-white text-gray-300 font-Montserrat text-[16px] font-[500] mb-[30px]'>Conduct Al marketing research for benchmarking in 2025</p>
 
       {loading ? (
         // Skeleton Loader
@@ -38,12 +38,12 @@ const Starting = ({ isPlanning, setIsPlanning, isBtn }) => {
       ) : (
         // Actual content
         Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className='flex justify-between items-center  border-b dark:border-white border-[#34006133] pb-[11px]'>
+          <div key={index} className='flex justify-between items-center  border-b dark:border-white border-gray-700 hover:border-purple-500 pb-[11px]'>
             <div className='flex items-end gap-[12px]'>
-              <TbWorldBolt className='text-2xl dark:text-white text-[#340061]' />
-              <Link to="/" className='font-Montserrat text-[16px] dark:text-white text-[#000000] font-[400]'>click here</Link>
+              <TbWorldBolt className='text-2xl dark:text-white text-[#A854F7]' />
+              <Link to="/" className='font-Montserrat text-[16px] dark:text-white text-gray-300 hover:text-white font-[400]'>click here</Link>
             </div>
-            <h1 className='font-Montserrat text-[16px] dark:text-white text-[#000000] font-[400]'>John Tomas</h1>
+            <h1 className='font-Montserrat text-[16px] dark:text-white text-gray-300 font-[400]'>John Tomas</h1>
           </div>
         ))
       )}

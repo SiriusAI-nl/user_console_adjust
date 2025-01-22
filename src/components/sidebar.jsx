@@ -15,6 +15,7 @@ import ListItemText from '@mui/material/ListItemText';
 import { FaPersonHalfDress } from "react-icons/fa6";
 import { LuArrowDownToLine } from "react-icons/lu";
 import { BiSolidBookmarkStar } from "react-icons/bi";
+import { BorderRight } from '@mui/icons-material';
 
 
 
@@ -27,6 +28,7 @@ const openedMixin = (theme) => ({
     duration: theme.transitions.duration.enteringScreen,
   }),
   overflowX: 'hidden',
+  backgroundColor:"#1F2937",
 });
 
 const closedMixin = (theme) => ({
@@ -34,7 +36,7 @@ const closedMixin = (theme) => ({
     easing: theme.transitions.easing.sharp,
     duration: theme.transitions.duration.leavingScreen,
   }),
-  overflowX: 'hidden',
+  overflowX: 'hidden', backgroundColor:"#1F2937",
   width: `calc(${theme.spacing(7)} + 1px)`,
   [theme.breakpoints.up('sm')]: {
     width: `calc(${theme.spacing(8)} + 1px)`,
@@ -49,7 +51,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   ...theme.mixins.toolbar,
 }));
 
-const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open' })(
+const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open'})(
   ({ theme, open }) => ({
     width: drawerWidth,
     flexShrink: 0,
@@ -76,19 +78,19 @@ function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
   };
 
   const dataArr = [
-    { name: "Agents", icon: "/images/user_agent.png" },
+    { name: "Agents", icon: "/images/user.png" },
     { name: "Download", icon: "/images/download.png" },
     { name: "Save", icon: "/images/save.png" },
   ];
 
   return (
     <Box
-      className={`${isBtn && "absolute"} flex h-screen transition-all duration-300 ${menuOpen ? 'w-[266px]' : 'w-[40px]'}`}
+      className={`${isBtn && "absolute"} z-[50] flex h-screen transition-all duration-300  ${menuOpen ? 'w-[240px]' : 'w-full'}`}
     >
       {/* Sidebar Drawer */}
       <Drawer variant="permanent" open={menuOpen}>
         <DrawerHeader style={{ paddingLeft: "10px" }}>
-          <IconButton className='mr-[20px]' onClick={handleDrawerToggle}>
+          <IconButton className=' mr-[20px]' onClick={handleDrawerToggle}>
             <MenuIcon />
           </IconButton>
         </DrawerHeader>
@@ -108,7 +110,7 @@ function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
                   borderRadius: '8px',
                   transition: 'background-color 0.3s ease, color 0.3s ease',
                   '&:hover': {
-                    backgroundColor: '#340061',
+                    backgroundColor: '#A854f7',
                     color: 'white',
                   },
                   borderRadius: "8px"
@@ -123,14 +125,14 @@ function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
                     color: "white",
                     transition: 'color 0.3s ease',
                     '&:hover': {
-                      color: 'white',
+                      color: 'purple',
                     },
                   }}
                 >
                   <img
                     src={icon}
                     alt=""
-                    className={`${menuOpen && "ml-[5px]"} w-[20px] h-[20px] transition duration-300 ease-in-out group-hover:invert group-hover:grayscale group-hover:brightness-50`}
+                    className={`${menuOpen && "ml-[5px]"} w-[20px] h-[20px] transition duration-300 ease-in-out text-white`}
                   />
 
 

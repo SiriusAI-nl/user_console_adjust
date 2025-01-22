@@ -42,24 +42,47 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     }
   }, [messages]);
 
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [isMedium, setIsMedium] = useState(false)
+
+  useEffect(() => {
+          const handleResize = () => {
+              setWindowWidth(window.innerWidth);
+          };
+  
+          window.addEventListener('resize', handleResize);
+  
+          return () => {
+              window.removeEventListener('resize', handleResize);
+          };
+      }, []);
+  
+      useEffect(() => {
+          if (windowWidth < 768) {
+            setIsMedium(true)
+          } else {
+            setIsMedium(false)
+          }
+      }, [windowWidth, setMenuOpen]);
+
   return (
     <div className="sm:static relative flex justify-center px-5 gap-x-5 h-[89vh]">
       <motion.div
         className={`flex flex-col justify-between ${
           isPlanning ? "w-[35%]" : "max-w-[713px]"
         } mx-auto w-full h-full`}
-        animate={{ width: isPlanning ? "35%" : "100%" }}
+        animate={{ width: (isPlanning && !isMedium) ? "35%" : "100%" }}
         transition={{ duration: 0.3 }}
       >
-        <div className="mb-5 w-full h-[90%] overflow-y-auto">
+        <div className="mb-5 w-full h-[90%] overflow-y-auto pt-[10px]">
           {messages.length ? (
             messages.map((arr, index) => (
               <Message key={index} sender={arr.sender} text={arr.message} />
             ))
           ) : (
             <div className="h-[60%] text-center w-full flex flex-col justify-center items-center mt-20">
-              <h1 className="sm:text-[40px] text-[25px] font-[600] text-black">
-                Welcome to SiriusAI
+              <h1 className="sm:text-[40px] text-[25px] font-[600] text-[#fafafa] flex ">
+                Welcome to<pre className="text-[#a854f7]"> SiriusAI</pre>
               </h1>
               <p className="mt-[5px] text-[16px] font-[600] text-[#6E7079]">
                 Start a conversation to generate marketing research insights
@@ -70,7 +93,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
           <div ref={messagesEndRef} />
           {isAIType && (
             <div
-              className={`w-[80px] h-[20px] typing flex items-center gap-x-1 rounded-[10px] my-4 text-[14px] border bg-white break-words p-2 text-left mr-auto`}
+              className={`w-[80px] h-[20px] typing flex items-center gap-x-1 rounded-[10px] my-4 text-[14px] border border-gray-700 hover:border-purple-500 bg-[#1F2937] break-words p-2 text-left mr-auto`}
             >
               <span></span>
               <span></span>
@@ -78,7 +101,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             </div>
           )}
         </div>
-        <div className="sm:mb-0 mb-3 dark:bg-[#3D3D3D] bg-white w-full rounded-[10px] flex items-center gap-2 px-4 py-2 max-h-[57px]">
+        <div className="sm:mb-0 mb-3 dark:bg-[#3D3D3D] bg-[#1F2937] border border-gray-700 hover:border-purple-500 w-full rounded-[10px] flex items-center gap-2 px-4 py-2 max-h-[57px] text-gray-300">
           <textarea
             type="text"
             placeholder="Ask a follow-up question..."
@@ -91,7 +114,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             className={`flex justify-center items-center p-2 rounded-md transition-all duration-300 ${
               !newtext.trim()
                 ? "text-gray-400 cursor-default"
-                : "text-[#340061] hover:bg-[#F3E8FF] active:bg-[#E9D5FF]"
+                : "text-[#340061] hover:bg-[#1F2937] active:bg-[#E9D5FF]"
             } bg-transparent`}
             onClick={handleMessage}
             disabled={!newtext.trim()}
@@ -99,12 +122,12 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             {isAIType ? (
               <FaCircleStop className="text-2xl" />
             ) : (
-              <PiPaperPlaneTiltFill className="text-2xl" />
+              <PiPaperPlaneTiltFill className="text-2xl text-gray-300"/>
             )}
           </button>
         </div>
       </motion.div>
-      <AnimatePresence>
+      {!isMedium && <AnimatePresence className="md:flex hidden">
         {isPlanning && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
@@ -115,7 +138,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             <Starting isPlanning={isPlanning} setIsPlanning={setIsPlanning} />
           </motion.div>
         )}
-      </AnimatePresence>
+      </AnimatePresence>}
     </div>
   );
 };
