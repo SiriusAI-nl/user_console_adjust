@@ -15,11 +15,11 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
   const [messages, setMessages] = useState([]);
   const [isSearchPlan, setIsSearchPlan] = useState(false);
   const [isType, setIsType] = useState(false);
+  const [error, setError] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchMessages = async () => {
     let { data } = await axios.get(`${API_URL}/api/chat`);
-    
   };
   useEffect(() => {
     // fetchMessages();
@@ -41,7 +41,6 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     setIsSearchPlan(true);
   };
 
-
   const handleMessage = async () => {
     if (isType) return;
     if (newtext.trim() === "") return;
@@ -55,16 +54,14 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     try {
       let response = await axios.post(`${API_URL}/api/chat`, {
         message: newtext,
-      })
-          
+      });
     } catch (error) {
-      alert(error)
-      console.log(error,"data");
+      setError("There was an issue with the API request. Please try again.");
+      console.log(error, "data");
     }
     setIsAIType(false);
     setIsType(false);
   };
-
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -154,6 +151,12 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             </div>
           )}
         </div>
+        {error && (
+          <div className="error-message text-red-500 bg-red-100 p-2 rounded-md my-3">
+            {error}
+          </div>
+        )}
+
         <form
           className="sm:mb-0 mb-3 dark:bg-[#3D3D3D] bg-[#1F2937] border border-gray-700 hover:border-purple-500 w-full rounded-[10px] flex items-center gap-2 px-4 py-2 max-h-[57px] text-gray-300"
           onSubmit={(e) => {
