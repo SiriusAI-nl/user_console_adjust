@@ -16,19 +16,35 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
   const [isSearchPlan, setIsSearchPlan] = useState(false);
   const [isType, setIsType] = useState(false);
   const [error, setError] = useState(null);
+  // const [plans, setPlans] = useState([]);
+  const [isChatLoading, setIsChatLoading] = useState(false); // Track chatbot API loading
+  const [isPlansLoading, setIsPlansLoading] = useState(false); // Track plans API loading
   const API_URL = import.meta.env.VITE_API_URL;
 
   const fetchMessages = async () => {
     let { data } = await axios.get(`${API_URL}/api/chat`);
   };
-  useEffect(() => {
-    // fetchMessages();
-    // fetchPlans();
-  }, []);
-  const fetchPlans = async () => {
-    let { data } = await axios.get(`${API_URL}/api/plan`);
-    console.log(data);
-  };
+
+  // // Function to fetch plans after 10 seconds
+  // const fetchPlans = async () => {
+  //   setIsPlansLoading(true); // Start loading plans
+  //   try {
+  //     // Adding a delay of 10 seconds
+  //     await new Promise((resolve) => setTimeout(resolve, 10000));
+
+  //     let response = await axios.get("http://127.0.0.1:8080/api/plan");
+  //     console.log(response, "data");
+  //     setPlans(response.data); // Set the response data to the plans state
+  //   } catch (error) {
+  //     setError("There was an issue with the API request. Please try again.");
+  //   } finally {
+  //     setIsPlansLoading(false); // Stop loading plans
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   fetchPlans(); // Call the fetchPlans function when the component mounts
+  // }, []);
 
   const messagesEndRef = useRef(null);
 
@@ -51,16 +67,22 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     setIsAIType(true);
     setIsType(true);
     setNewtext("");
+    setIsSearchPlan(true);
+    setIsChatLoading(true); // Start loading chatbot response
     try {
       let response = await axios.post(`${API_URL}/api/chat`, {
         message: newtext,
       });
+      setIsSearchPlan(true);
+      fetchPlans(); // Fetch plans after chatbot API call
     } catch (error) {
       setError("There was an issue with the API request. Please try again.");
       console.log(error, "data");
+    } finally {
+      setIsChatLoading(false); // Stop loading chatbot response
+      setIsAIType(false);
+      setIsType(false);
     }
-    setIsAIType(false);
-    setIsType(false);
   };
 
   useEffect(() => {
@@ -92,6 +114,9 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     }
   }, [windowWidth, setMenuOpen]);
 
+
+  console.log(API_URL,"API_URL");
+
   return (
     <div className="sm:static relative flex justify-center px-5 gap-x-5 h-[89vh]">
       <motion.div
@@ -116,12 +141,6 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
                 Start a conversation to generate marketing research insights
               </p>
             </div>
-          )}
-          {isSearchPlan && (
-            <EditSearch
-              setIsPlanning={setIsPlanning}
-              setMenuOpen={setMenuOpen}
-            />
           )}
           {isMedium && (
             <AnimatePresence>
@@ -150,6 +169,14 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
               <span></span>
             </div>
           )}
+          {isSearchPlan && (
+            <EditSearch
+              setIsPlanning={setIsPlanning}
+              setMenuOpen={setMenuOpen}
+              // plans={plans}
+              isPlansLoading={isPlansLoading}
+            />
+          )}
         </div>
         {error && (
           <div className="error-message text-red-500 bg-red-100 p-2 rounded-md my-3">
@@ -162,7 +189,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
           onSubmit={(e) => {
             e.preventDefault();
             handleMessage();
-          }} // Ensure form submits on enter key press
+          }}
         >
           <textarea
             type="text"

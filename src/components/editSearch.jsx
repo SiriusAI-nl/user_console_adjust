@@ -6,7 +6,9 @@ import { GoDotFill } from "react-icons/go";
 
 
 
-const EditSearch = ({ setIsPlanning, setMenuOpen }) => {
+const EditSearch = ({ setIsPlanning, setMenuOpen , plan }) => {
+
+  console.log(plan)
   return (
     <div id='main' className='px-[30px] md:px-[50px] dark:text-white text-gray-300 dark:bg-[#3D3D3D] bg-[#1F2937] border-[1px] border-gray-700 py-[30px]   w-fit rounded-[10px]   lg:pr-[105px] overflow-hidden hover:border-purple-500'>
       <div className='flex  items-center gap-[10px] mb-[15px]'>
