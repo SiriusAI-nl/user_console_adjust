@@ -114,9 +114,6 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     }
   }, [windowWidth, setMenuOpen]);
 
-
-  console.log(API_URL,"API_URL");
-
   return (
     <div className="sm:static relative flex justify-center px-5 gap-x-5 h-[89vh]">
       <motion.div
@@ -172,6 +169,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
           {isSearchPlan && (
             <EditSearch
               setIsPlanning={setIsPlanning}
+              isPlanning={isPlanning}
               setMenuOpen={setMenuOpen}
               // plans={plans}
               isPlansLoading={isPlansLoading}
