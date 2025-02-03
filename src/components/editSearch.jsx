@@ -13,6 +13,10 @@ const EditSearch = ({ setIsPlanning, setMenuOpen, plan, isPlanning }) => {
   const fetchPlans = async () => {
     try {
       setLoading(true);
+
+      // Introduce an 8-second delay
+      await new Promise((resolve) => setTimeout(resolve, 8000));
+
       let response = await axios.get(`${API_URL}/api/plan`);
       setPlans(response.data.plan);
       console.log(response.data.plan, "data");
@@ -33,7 +37,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen, plan, isPlanning }) => {
   return (
     <div
       id="main"
-      className="px-[30px] md:px-[50px] dark:text-white text-gray-300 dark:bg-[#3D3D3D] bg-[#1F2937] border-[1px] border-gray-700 py-[30px]   w-fit rounded-[10px]   lg:pr-[105px] overflow-hidden hover:border-purple-500"
+      className="px-[30px] md:px-[50px] dark:text-white text-gray-300 dark:bg-[#3D3D3D] bg-[#1F2937] border-[1px] border-gray-700 py-[30px]   w-fit rounded-[10px]   lg:px-[50px] overflow-hidden hover:border-purple-500"
     >
       <div className="flex  items-center gap-[10px] mb-[15px]">
         <MdStarBorder className="text-2xl text-purple-500 " />
@@ -47,7 +51,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen, plan, isPlanning }) => {
           Array.from({ length: 6 }).map((_, index) => (
             <div
               key={index}
-              className="flex justify-between items-center  border-b dark:border-white border-[#34006133] pb-[11px]"
+              className="flex justify-between items-center w-[610px] border-b dark:border-white border-[#34006133] pb-[11px]"
             >
               <div className="flex items-end gap-[12px]">
                 <div className="w-8 h-8 bg-[#d1d1d1] rounded-full animate-pulse"></div>
@@ -61,7 +65,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen, plan, isPlanning }) => {
             <div
               key={index}
               style={{ height: "60px" }}
-              className="flex gap-[25px] items-center w-[710px]  border-b dark:border-white border-gray-700 hover:border-purple-500 pb-[11px]"
+              className="flex gap-[25px] items-center w-[610px]  border-b dark:border-white border-gray-700 hover:border-purple-500 pb-[11px]"
             >
               <div className="flex items-end gap-[12px]">
                 <GoDotFill
@@ -81,9 +85,9 @@ const EditSearch = ({ setIsPlanning, setMenuOpen, plan, isPlanning }) => {
                   click here
                 </Link> */}
                 <h1
-                  className="font-Montserrat text-[12px] text-white text-gray-300 font-[400]"
+                  className="font-Montserrat text-[13px] text-white text-gray-300 font-[400]"
                   style={{
-                    maxWidth: "550px", // Optional: limit the width for truncation
+                    maxWidth: "490px", // Optional: limit the width for truncation
                     overflow: "hidden",
                     whiteSpace: "nowrap", // Keep text on one line
                     textOverflow: "ellipsis", // Show ellipsis if text is too long
