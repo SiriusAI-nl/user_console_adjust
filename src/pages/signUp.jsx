@@ -8,7 +8,10 @@ import { FaEyeSlash } from "react-icons/fa";
 import { Link } from "react-router-dom";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import CircularProgress from '@mui/material/CircularProgress';
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
+import CircularProgress from "@mui/material/CircularProgress";
 
 const registerApi = import.meta.env.VITE_REGISTER_LOGIN_API;
 
@@ -37,17 +40,20 @@ const SignUp = () => {
     try {
       setLoading(true);
       const response = await axios.post(`${registerApi}register-user`, form);
-      alert("Registration successful"); // Display success alert
-      setForm({
-        first_name: "",
-        last_name: "",
-        email: "",
-        password: "",
-      });
-      navigate("/");
-      console.log(response, "data");
+      if (response.status === 200 || response.statusText === "OK") {
+        toast.success("Registration successful");
+        setForm({
+          first_name: "",
+          last_name: "",
+          email: "",
+          password: "",
+        });
+        setTimeout(() => {
+          navigate("/");
+        }, 3000);
+      }
     } catch (error) {
-      alert("Registration failed. Please try again.");
+      toast.error("Something went wrong . Please try again.");
       setError(error.message);
       setLoading(false);
     } finally {
@@ -58,9 +64,23 @@ const SignUp = () => {
   const showHandle = () => {
     setShow(!show);
   };
-
   return (
     <div className="w-full max-h-screen flex">
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        style={{
+          fontSize: "12px",
+        }}
+      />
       <div
         className="w-full bg-[#030c1c] flex flex-col justify-center items-center md:w-[50%] lg:w-[40%]"
         id="leftside"
@@ -158,7 +178,7 @@ const SignUp = () => {
               >
                 Sign up{" "}
                 {loading ? (
-                  <CircularProgress color="inherit" size={20}/>
+                  <CircularProgress color="inherit" size={20} />
                 ) : (
                   <img src="./public/images/arrow.svg" alt="" />
                 )}{" "}

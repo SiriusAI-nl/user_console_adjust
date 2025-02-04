@@ -8,6 +8,8 @@ import { CiLock } from "react-icons/ci";
 import { Link, useNavigate } from "react-router-dom";
 import CircularProgress from "@mui/material/CircularProgress";
 import axios from "axios";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 const loginApi = import.meta.env.VITE_REGISTER_LOGIN_API;
 
 export const Login = () => {
@@ -34,13 +36,17 @@ export const Login = () => {
       setLoading(true);
       const response = await axios.post(`${loginApi}login`, form);
       localStorage.setItem("IsloggedIn", true);
-      alert("Login successful"); // Display success alert
-      setForm({
-        email: "",
-        password: "",
-      });
-      navigate("/home");
-      console.log(response, "data");
+      if (response.status === 200 || response.statusText === "OK") {
+        toast.success("Login successful");
+        setForm({
+          email: "",
+          password: "",
+        });
+
+        setTimeout(() => {
+          navigate("/home");
+        }, 3000);
+      }
     } catch (error) {
       alert("Login failed. Please try again.");
       setError(error.message);
@@ -58,6 +64,21 @@ export const Login = () => {
 
   return (
     <div className="w-full max-h-screen flex">
+      <ToastContainer
+        position="top-right"
+        autoClose={2000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="dark"
+        style={{
+          fontSize: "12px",
+        }}
+      />
       <div
         className="w-full bg-[#030c1c] flex flex-col justify-center items-center md:w-[50%] lg:w-[40%]"
         id="leftside"

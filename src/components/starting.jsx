@@ -2,21 +2,36 @@ import React, { useState, useEffect } from 'react';
 import { SlClose } from "react-icons/sl";
 import { TbWorldBolt } from "react-icons/tb";
 import { Link } from 'react-router-dom';
+import axios from 'axios';
+const keyword_api_url = import.meta.env.VITE_API_URL;
+
 
 const Starting = ({ isPlanning, setIsPlanning, isBtn }) => {
   const [loading, setLoading] = useState(true);
+  const [keyWords, setKeyWords] = useState([]);
+
+
+  const FetchKeyWords = async () => {
+    try {
+      setLoading(true);
+      let response = await axios.get(`${keyword_api_url}/api/keyword_report`);
+      console.log(response, "data");
+      // setKeyWords(response.data.plan);
+      // setPlan(response.data); // Set the response data to the plans state
+    } catch (error) {
+      console.log(error);
+      setLoading(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
 
 
   useEffect(() => {
-
-    if (isPlanning) {
-      setTimeout(() => {
-        setLoading(false)
-      }, 2000)
-    } else {
-      setLoading(true)
-    }  
-  }, [isPlanning])
+    FetchKeyWords();
+  }, [])
 
   return (
     <div className={` h-full hidden md:flex py-[30px] px-[30px] flex-col gap-4 border-[1px] dark:border-white border-gray-700 hover:border-purple-500 rounded-[10px] pb-[150px] bg-[#1F2937]`}>
@@ -39,7 +54,7 @@ const Starting = ({ isPlanning, setIsPlanning, isBtn }) => {
         ))
       ) : (
         // Actual content
-        Array.from({ length: 6 }).map((_, index) => (
+        keyWords?.map((_, index) => (
           <div key={index} className='flex justify-between items-center  border-b dark:border-white border-gray-700 hover:border-purple-500 pb-[11px]'>
             <div className='flex items-end gap-[12px]'>
               <TbWorldBolt className='text-2xl dark:text-white text-[#A854F7]' />

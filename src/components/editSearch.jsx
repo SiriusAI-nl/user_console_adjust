@@ -14,9 +14,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen, plan, isPlanning }) => {
     try {
       setLoading(true);
 
-      // Introduce an 8-second delay
-      await new Promise((resolve) => setTimeout(resolve, 8000));
-
+      // Introduce an 8-second delay  
       let response = await axios.get(`${API_URL}/api/plan`);
       setPlans(response.data.plan);
       console.log(response.data.plan, "data");
@@ -61,7 +59,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen, plan, isPlanning }) => {
             </div>
           ))
         : // Actual content
-          plans.map((plan, index) => (
+          plans?.map((plan, index) => (
             <div
               key={index}
               style={{ height: "60px" }}
