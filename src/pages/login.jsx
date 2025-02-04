@@ -38,14 +38,14 @@ export const Login = () => {
       localStorage.setItem("IsloggedIn", true);
       if (response.status === 200 || response.statusText === "OK") {
         toast.success("Login successful");
-        setForm({
-          email: "",
-          password: "",
-        });
 
         setTimeout(() => {
+          setForm({
+            email: "",
+            password: "",
+          });
           navigate("/home");
-        }, 3000);
+        }, 2000);
       }
     } catch (error) {
       alert("Login failed. Please try again.");
