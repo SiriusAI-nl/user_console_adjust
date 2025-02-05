@@ -31,29 +31,31 @@ export const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(form);
-    try {
-      setLoading(true);
-      const response = await axios.post(`${loginApi}login`, form);
-      localStorage.setItem("IsloggedIn", true);
-      if (response.status === 200 || response.statusText === "OK") {
-        toast.success("Login successful");
+    navigate("/home");
 
-        setTimeout(() => {
-          setForm({
-            email: "",
-            password: "",
-          });
-          navigate("/home");
-        }, 2000);
-      }
-    } catch (error) {
-      alert("Login failed. Please try again.");
-      setError(error.message);
-      setLoading(false);
-    } finally {
-      setLoading(false);
-    }
+    console.log(form);
+    // try {
+    //   setLoading(true);
+    //   const response = await axios.post(`${loginApi}login`, form);
+    //   localStorage.setItem("IsloggedIn", true);
+    //   if (response.status === 200 || response.statusText === "OK") {
+    //     toast.success("Login successful");
+
+    //     setTimeout(() => {
+    //       setForm({
+    //         email: "",
+    //         password: "",
+    //       });
+    //       navigate("/home");
+    //     }, 2000);
+    //   }
+    // } catch (error) {
+    //   alert("Login failed. Please try again.");
+    //   setError(error.message);
+    //   setLoading(false);
+    // } finally {
+    //   setLoading(false);
+    // }
   };
 
   function handlePassword() {
