@@ -31,7 +31,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen, plan, isPlanning }) => {
     fetchPlans();
   }, []);
 
-  console.log(plans, "plans");
+  // console.log(plans, "plans");
   return (
     <div
       id="main"
