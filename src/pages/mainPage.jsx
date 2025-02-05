@@ -25,26 +25,26 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     let { data } = await axios.get(`${API_URL}/api/chat`);
   };
 
-  // // Function to fetch plans after 10 seconds
-  // const fetchPlans = async () => {
-  //   setIsPlansLoading(true); // Start loading plans
-  //   try {
-  //     // Adding a delay of 10 seconds
-  //     await new Promise((resolve) => setTimeout(resolve, 10000));
+  // Function to fetch plans after 10 seconds
+  const fetchPlans = async () => {
+    setIsPlansLoading(true); // Start loading plans
+    try {
+      // Adding a delay of 10 seconds
+      // await new Promise((resolve) => setTimeout(resolve, 10000));
 
-  //     let response = await axios.get("http://127.0.0.1:8080/api/plan");
-  //     console.log(response, "data");
-  //     setPlans(response.data); // Set the response data to the plans state
-  //   } catch (error) {
-  //     setError("There was an issue with the API request. Please try again.");
-  //   } finally {
-  //     setIsPlansLoading(false); // Stop loading plans
-  //   }
-  // };
+      let response = await axios.get(`${Api_URL}/api/plan`);
+      console.log(response, "data");
+      setPlans(response.data); // Set the response data to the plans state
+    } catch (error) {
+      setError("There was an issue with the API request. Please try again.");
+    } finally {
+      setIsPlansLoading(false); // Stop loading plans
+    }
+  };
 
-  // useEffect(() => {
-  //   fetchPlans(); // Call the fetchPlans function when the component mounts
-  // }, []);
+  useEffect(() => {
+    fetchPlans(); // Call the fetchPlans function when the component mounts
+  }, []);
 
   const messagesEndRef = useRef(null);
 
