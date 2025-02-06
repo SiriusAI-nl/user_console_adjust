@@ -55,10 +55,10 @@ const EditSearch = ({ setIsPlanning, setMenuOpen }) => {
       ) : (
         <div
           className={`transition-all duration-300 overflow-hidden ${
-            showAll ? "h-auto" : "h-[300px]" // Show 4 plans initially (approx. 300px height)
+            showAll && "h-[300px]" // Show 4 plans initially (approx. 300px height)
           }`}
           style={{
-            maxHeight: showAll ? "none" : "400px",
+            maxHeight: "400px",
             overflowY: showAll ? "auto" : "hidden",
           }}
         >
@@ -95,11 +95,11 @@ const EditSearch = ({ setIsPlanning, setMenuOpen }) => {
         </div>
       )}
 
-      {!loading && plans.length > 4 && (
+      {!loading && plans?.length > 4 && (
         <button
           className="text-white mt-4 py-1 px-2 rounded-md"
           style={{
-            backgroundColor: "#A854F7", 
+            backgroundColor: "#A854F7",
             fontSize: "12px",
             fontFamily: "Montserrat, sans-serif",
             fontWeight: "500",
