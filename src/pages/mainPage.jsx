@@ -16,50 +16,75 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
   const [isSearchPlan, setIsSearchPlan] = useState(false);
   const [isType, setIsType] = useState(false);
   const [error, setError] = useState(null);
-  // const [plans, setPlans] = useState([]);
-  const [isChatLoading, setIsChatLoading] = useState(false); // Track chatbot API loading
-  const [isPlansLoading, setIsPlansLoading] = useState(false); // Track plans API loading
+  const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isPlansLoading, setIsPlansLoading] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL;
+  const wsRef = useRef(null); // Ref to store WebSocket instance
 
-  const fetchMessages = async () => {
-    let { data } = await axios.get(`${API_URL}/api/chat`);
-  };
-
-  // Function to fetch plans after 10 seconds
+  // Fetch plans from the API
   const fetchPlans = async () => {
-    setIsPlansLoading(true); // Start loading plans
+    setIsPlansLoading(true);
     try {
-      // Adding a delay of 10 seconds
-      // await new Promise((resolve) => setTimeout(resolve, 10000));
-
-      let response = await axios.get(`${Api_URL}/api/plan`);
+      let response = await axios.get(`${API_URL}/api/plan`);
       console.log(response, "data");
-      setPlans(response.data); // Set the response data to the plans state
+      // setPlans(response.data); // Uncomment if you have a plans state
     } catch (error) {
       setError("There was an issue with the API request. Please try again.");
     } finally {
-      setIsPlansLoading(false); // Stop loading plans
+      setIsPlansLoading(false);
     }
   };
 
+  // Initialize WebSocket connection
   useEffect(() => {
-    fetchPlans(); // Call the fetchPlans function when the component mounts
+    const ws = new WebSocket(import.meta.env.VITE_WEBSOCKET_URL);
+
+    ws.onopen = () => {
+      console.log("WebSocket connection established.");
+    };
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { message: data.message, sender: "AI" },
+      ]);
+    };
+
+    ws.onerror = (error) => {
+      console.error("WebSocket error:", error);
+      setError("WebSocket connection error. Please try again.");
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed.");
+    };
+
+    wsRef.current = ws; // Store WebSocket instance in ref
+
+    return () => {
+      ws.close(); // Close WebSocket connection on unmount
+    };
   }, []);
 
+  // Fetch plans on component mount
+  useEffect(() => {
+    fetchPlans();
+  }, []);
+
+  // Scroll to the bottom of the chat window when messages update
   const messagesEndRef = useRef(null);
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
 
-  const handleAIMessage = () => {
-    setIsAIType(false);
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { message: "Hello! How can I help you?", sender: "ai" },
-    ]);
-    setIsSearchPlan(true);
-  };
-
+  // Handle sending a message
   const handleMessage = async () => {
-    if (isType) return;
-    if (newtext.trim() === "") return;
+    if (isType || !newtext.trim()) return;
+
+    // Add user message to the chat
     setMessages((prevMessages) => [
       ...prevMessages,
       { message: newtext, sender: "user" },
@@ -67,52 +92,36 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     setIsAIType(true);
     setIsType(true);
     setNewtext("");
-    setIsSearchPlan(true);
-    setIsChatLoading(true); // Start loading chatbot response
+    setIsChatLoading(true);
+
     try {
-      let response = await axios.post(`${API_URL}/api/chat`, {
-        message: newtext,
-      });
-      setIsSearchPlan(true);
-      fetchPlans(); // Fetch plans after chatbot API call
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        // Send message through WebSocket
+        wsRef.current.send(JSON.stringify({ message: newtext }));
+      } else {
+        setError("WebSocket is not connected.");
+      }
     } catch (error) {
-      setError("There was an issue with the API request. Please try again.");
-      console.log(error, "data");
+      setError("Failed to send message. Please try again.");
+      console.error("WebSocket send error:", error);
     } finally {
-      setIsChatLoading(false); // Stop loading chatbot response
+      setIsChatLoading(false);
       setIsAIType(false);
       setIsType(false);
     }
   };
 
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, isPlanning]);
-
+  // Handle window resize for responsive UI
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isMedium, setIsMedium] = useState(false);
-
   useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-
+    const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
-
   useEffect(() => {
-    if (windowWidth < 768) {
-      setIsMedium(true);
-    } else {
-      setIsMedium(false);
-    }
-  }, [windowWidth, setMenuOpen]);
+    setIsMedium(windowWidth < 768);
+  }, [windowWidth]);
 
   return (
     <div className="sm:static relative flex justify-center px-5 gap-x-5 h-[89vh]">
@@ -130,7 +139,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             ))
           ) : (
             <div className="h-[60%] text-center w-full flex flex-col justify-center items-center mt-20">
-              <h1 className="sm:text-[40px] text-[25px] font-[600] text-[#fafafa] flex ">
+              <h1 className="sm:text-[40px] text-[25px] font-[600] text-[#fafafa] flex">
                 Welcome to
                 <span className="text-purple-500">&nbsp;SiriusAI</span>
               </h1>
@@ -158,9 +167,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
           )}
           <div ref={messagesEndRef} />
           {isAIType && (
-            <div
-              className={`w-[80px] h-[20px] typing flex items-center gap-x-1 rounded-[10px] my-4 text-[14px] border border-gray-700 hover:border-purple-500 bg-[#1F2937] break-words p-2 text-left mr-auto`}
-            >
+            <div className="w-[80px] h-[20px] typing flex items-center gap-x-1 rounded-[10px] my-4 text-[14px] border border-gray-700 hover:border-purple-500 bg-[#1F2937] break-words p-2 text-left mr-auto">
               <span></span>
               <span></span>
               <span></span>
@@ -171,16 +178,10 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
               setIsPlanning={setIsPlanning}
               isPlanning={isPlanning}
               setMenuOpen={setMenuOpen}
-              // plans={plans}
               isPlansLoading={isPlansLoading}
             />
           )}
         </div>
-        {/* {error && (
-          <div className="error-message text-red-500 bg-red-100 p-2 rounded-md my-3">
-            {error}
-          </div>
-        )} */}
 
         <form
           className="sm:mb-0 mb-3 dark:bg-[#3D3D3D] bg-[#1F2937] border border-gray-700 hover:border-purple-500 w-full rounded-[10px] flex items-center gap-2 px-4 py-2 max-h-[57px] text-gray-300"
@@ -199,7 +200,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
-                handleMessage(e);
+                handleMessage();
               }
             }}
           ></textarea>
@@ -210,13 +211,6 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
                 ? "text-gray-400 cursor-default"
                 : "text-[#340061] hover:bg-[#1F2937] active:bg-[#E9D5FF]"
             } bg-transparent`}
-            onClick={() => {
-              if (isAIType) {
-                handleMessage();
-              } else {
-                setIsAIType(false);
-              }
-            }}
             disabled={isType || !newtext.trim()}
           >
             {isAIType ? (
