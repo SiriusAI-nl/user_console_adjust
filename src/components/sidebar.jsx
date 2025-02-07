@@ -113,7 +113,6 @@ function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
                     backgroundColor: '#A854f7',
                     color: 'white',
                   },
-                  borderRadius: "8px"
                 }}
               >
                 <ListItemIcon
