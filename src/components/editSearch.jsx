@@ -106,7 +106,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen }) => {
           }}
           onClick={() => setShowAll(!showAll)}
         >
-          {showAll ? "Show Less" : "Show More"}
+          {showAll ? "Show More" : "Show Less"}
         </button>
       )}
 
@@ -125,7 +125,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen }) => {
             setMenuOpen(false);
           }}
         >
-          Start Research
+          Show Keyword Report
         </button>
       </div>
     </div>

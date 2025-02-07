@@ -45,10 +45,13 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log(data, "data from websocket");
       setMessages((prevMessages) => [
         ...prevMessages,
-        { message: data.message, sender: "AI" },
+        { message: data.content, sender: "AI" },
       ]);
+      setIsAIType(false); // AI has finished typing
+      setIsSearchPlan(true);
     };
 
     ws.onerror = (error) => {
@@ -89,10 +92,10 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
       ...prevMessages,
       { message: newtext, sender: "user" },
     ]);
-    setIsAIType(true);
     setIsType(true);
     setNewtext("");
     setIsChatLoading(true);
+    setIsAIType(true); // AI is typing
 
     try {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -104,10 +107,6 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     } catch (error) {
       setError("Failed to send message. Please try again.");
       console.error("WebSocket send error:", error);
-    } finally {
-      setIsChatLoading(false);
-      setIsAIType(false);
-      setIsType(false);
     }
   };
 
@@ -148,31 +147,18 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
               </p>
             </div>
           )}
-          {isMedium && (
-            <AnimatePresence>
-              {isPlanning && (
-                <motion.div
-                  initial={{ width: 0, opacity: 0 }}
-                  animate={{ width: "100%", opacity: 1 }}
-                  exit={{ width: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Starting
-                    isPlanning={isPlanning}
-                    setIsPlanning={setIsPlanning}
-                  />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          )}
-          <div ref={messagesEndRef} />
           {isAIType && (
-            <div className="w-[80px] h-[20px] typing flex items-center gap-x-1 rounded-[10px] my-4 text-[14px] border border-gray-700 hover:border-purple-500 bg-[#1F2937] break-words p-2 text-left mr-auto">
-              <span></span>
-              <span></span>
-              <span></span>
+            <div className="flex justify-start my-2">
+              <div className="bg-gray-700 p-3 rounded-lg">
+                <div className="flex items-center gap-x-1">
+                  <span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>
+                  <span className="w-2 h-2 bg-white rounded-full animate-bounce delay-100"></span>
+                  <span className="w-2 h-2 bg-white rounded-full animate-bounce delay-200"></span>
+                </div>
+              </div>
             </div>
           )}
+          <div ref={messagesEndRef} />
           {isSearchPlan && (
             <EditSearch
               setIsPlanning={setIsPlanning}
@@ -182,7 +168,6 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             />
           )}
         </div>
-
         <form
           className="sm:mb-0 mb-3 dark:bg-[#3D3D3D] bg-[#1F2937] border border-gray-700 hover:border-purple-500 w-full rounded-[10px] flex items-center gap-2 px-4 py-2 max-h-[57px] text-gray-300"
           onSubmit={(e) => {
@@ -206,12 +191,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
           ></textarea>
           <button
             type="submit"
-            className={`flex justify-center items-center p-2 rounded-md transition-all duration-300 ${
-              !newtext.trim()
-                ? "text-gray-400 cursor-default"
-                : "text-[#340061] hover:bg-[#1F2937] active:bg-[#E9D5FF]"
-            } bg-transparent`}
-            disabled={isType || !newtext.trim()}
+            className={`flex justify-center items-center p-2 rounded-md transition-all duration-300 bg-transparent`}
           >
             {isAIType ? (
               <FaCircleStop className="text-2xl" />
