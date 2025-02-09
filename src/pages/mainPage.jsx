@@ -19,15 +19,13 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isPlansLoading, setIsPlansLoading] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL;
-  const wsRef = useRef(null); // Ref to store WebSocket instance
+  const wsRef = useRef(null);
 
-  // Fetch plans from the API
   const fetchPlans = async () => {
     setIsPlansLoading(true);
     try {
       let response = await axios.get(`${API_URL}/api/plan`);
       console.log(response, "data");
-      // setPlans(response.data); // Uncomment if you have a plans state
     } catch (error) {
       setError("There was an issue with the API request. Please try again.");
     } finally {
@@ -35,7 +33,6 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     }
   };
 
-  // Initialize WebSocket connection
   useEffect(() => {
     const ws = new WebSocket(import.meta.env.VITE_WEBSOCKET_URL);
 
@@ -50,7 +47,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
         ...prevMessages,
         { message: data.content, sender: "AI" },
       ]);
-      setIsAIType(false); // AI has finished typing
+      setIsAIType(false);
       setIsSearchPlan(true);
     };
 
@@ -63,19 +60,17 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
       console.log("WebSocket connection closed.");
     };
 
-    wsRef.current = ws; // Store WebSocket instance in ref
+    wsRef.current = ws;
 
     return () => {
-      ws.close(); // Close WebSocket connection on unmount
+      ws.close();
     };
   }, []);
 
-  // Fetch plans on component mount
   useEffect(() => {
     fetchPlans();
   }, []);
 
-  // Scroll to the bottom of the chat window when messages update
   const messagesEndRef = useRef(null);
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -83,11 +78,9 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     }
   }, [messages]);
 
-  // Handle sending a message
   const handleMessage = async () => {
     if (isType || !newtext.trim()) return;
 
-    // Add user message to the chat
     setMessages((prevMessages) => [
       ...prevMessages,
       { message: newtext, sender: "user" },
@@ -95,11 +88,10 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     setIsType(true);
     setNewtext("");
     setIsChatLoading(true);
-    setIsAIType(true); // AI is typing
+    setIsAIType(true);
 
     try {
       if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        // Send message through WebSocket
         wsRef.current.send(JSON.stringify({ message: newtext }));
       } else {
         setError("WebSocket is not connected.");
@@ -110,14 +102,15 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     }
   };
 
-  // Handle window resize for responsive UI
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isMedium, setIsMedium] = useState(false);
+
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
   useEffect(() => {
     setIsMedium(windowWidth < 768);
   }, [windowWidth]);

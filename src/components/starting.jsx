@@ -1,161 +1,225 @@
 import React, { useState, useEffect } from "react";
 import { SlClose } from "react-icons/sl";
 import axios from "axios";
+import * as XLSX from "xlsx";
+import { marked } from "marked";
+import MarkdownRenderer from "./MarkdownRenderer";
+import KeywordChart from "./KeywordChart";
+import GeminiChart from "./GeminiChart";
+
 const keyword_api_url = import.meta.env.VITE_API_URL;
 
-const Starting = ({ isPlanning, setIsPlanning, isBtn }) => {
-  const [loading, setLoading] = useState(true);
+const Starting = ({ isPlanning, setIsPlanning }) => {
+  const [loading, setLoading] = useState(false);
   const [keyWords, setKeyWords] = useState([]);
   const [geminiReport, setGeminiReport] = useState("");
+  const [geminiChartData, setGeminiChartData] = useState([]);
   const [showGeminiReport, setShowGeminiReport] = useState(false);
   const [isResearching, setIsResearching] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showKeywordReport, setShowKeywordReport] = useState(false);
 
-  const FetchKeyWords = async () => {
+  const fetchKeywords = async () => {
     try {
       setLoading(true);
-      // Add an 8-second delay before making the API call
-      await new Promise((resolve) => setTimeout(resolve, 5000));
-      let response = await axios.get(`${keyword_api_url}/api/keyword_report`);
-      setKeyWords(response.data.keyword_report);
+      const response = await axios.get(`${keyword_api_url}/api/keyword_report`);
+      setKeyWords(response.data.keyword_report || []);
     } catch (error) {
-      console.log(error);
+      console.error("Error fetching keyword report:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const FetchGeminiReport = async () => {
+  const fetchGeminiReport = async () => {
     try {
       setLoading(true);
-      let response = await axios.get(`${keyword_api_url}/api/gemini_report`);
-      setGeminiReport(response.data.report); // Assuming the response has a 'report' field
+      const response = await axios.get(`${keyword_api_url}/api/gemini_report`);
+      const reportData = response.data.gemini_report;
+      let formattedText = "";
+      let chartData = [];
+
+      if (reportData && Array.isArray(reportData.candidates)) {
+        chartData = reportData.candidates
+          .filter((candidate) => candidate.title && candidate.score)
+          .map((candidate) => ({
+            name: candidate.title,
+            value: candidate.score,
+          }));
+
+        formattedText = reportData.candidates
+          .map((candidate) =>
+            candidate.content?.parts?.map((part) => part.text).join("\n") || ""
+          )
+          .join("\n\n");
+      }
+
+      setGeminiChartData(chartData);
+      setGeminiReport(formattedText);
       setShowGeminiReport(true);
+      setIsCollapsed(true);
     } catch (error) {
-      console.log(error);
+      console.error("Error fetching Gemini Report:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (!showGeminiReport && !isResearching) {
-      FetchKeyWords();
-    }
-  }, [showGeminiReport, isResearching]);
 
   const handleStartResearch = () => {
     setIsResearching(true);
-    setShowGeminiReport(false);
-    setKeyWords([]);
-    FetchGeminiReport();
+    fetchGeminiReport();
+  };
+
+  const handleShowKeywordReport = () => {
+    setShowKeywordReport(true);
+    fetchKeywords();
+  };
+
+  const downloadKeywordsExcel = () => {
+    if (!Array.isArray(keyWords) || keyWords.length === 0) return;
+
+    const wsData = [
+      ["Keyword", "Search Volume", "Commercial Value"],
+      ...keyWords.map((keyword) => [
+        keyword.keyword,
+        keyword.search_volume,
+        keyword.commercial_value,
+      ]),
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Keyword Report");
+    XLSX.writeFile(wb, "Keyword_Report.xlsx");
+  };
+
+  const downloadGeminiReportWord = () => {
+    const htmlContent = marked(geminiReport);
+    const html = `<!DOCTYPE html>
+    <html><head><meta charset="utf-8"><title>Marketing Report</title></head>
+    <body>${htmlContent}</body></html>`;
+    const blob = new Blob([html], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "Gemini_Report.doc";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="h-full hidden md:flex py-[30px] px-[30px] flex-col gap-4 border-[1px] dark:border-white border-gray-700 hover:border-purple-500 rounded-[10px] bg-[#1F2937]">
-      {/* Header */}
-      <div className="flex w-full mb-[20px] justify-between">
-        <h1 className="dark:text-white text-gray-300 font-Montserrat font-[400] text-[16px]">
-          {isResearching
-            ? "AI Marketing Research in Progress"
-            : "Starting Research"}
-        </h1>
-        <SlClose
-          className="text-2xl dark:text-white text-gray-300 cursor-pointer hover:text-purple-500"
-          onClick={() => setIsPlanning(false)}
-        />
-      </div>
-
-      {/* Description */}
-      <p className="dark:text-white text-gray-300 font-Montserrat text-[16px] font-[500] mb-[30px]">
-        {isResearching
-          ? "Please wait while we fetch the Gemini Report for your AI marketing research."
-          : "Conduct AI marketing research for benchmarking in 2025"}
-      </p>
-
-      {/* Content Area */}
-      {isResearching ? (
-        <div className="w-full h-[500px] p-[10px] dark:bg-[#2d3748] bg-white dark:text-white text-gray-700 rounded-[10px]">
-          {loading ? (
-            // Skeleton Loading Effect
-            <div className="space-y-2">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="h-4 bg-[#d1d1d1] dark:bg-[#4a5568] rounded animate-pulse"
-                ></div>
-              ))}
+    <div className="flex h-full w-full py-6 px-6 border dark:border-white border-gray-700 hover:border-purple-500 rounded-lg bg-[#1F2937]">
+      {!showGeminiReport ? (
+        <>
+          {/* Left Panel */}
+          {!isCollapsed && (
+            <div className="w-1/4 p-4 transition-all duration-300">
+              <div className="flex flex-col gap-4">
+                <h1 className="dark:text-white text-gray-300 text-lg">
+                  {isResearching ? "AI Marketing Research in Progress" : "Starting Research"}
+                </h1>
+                <button
+                  onClick={handleShowKeywordReport}
+                  className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded"
+                >
+                  Show Keyword Report
+                </button>
+              </div>
             </div>
-          ) : (
-            <textarea
-              className="w-full h-full p-[10px] dark:bg-[#2d3748] bg-white dark:text-white text-gray-700 rounded-[10px]"
-              value={geminiReport}
-              readOnly
-            />
           )}
-        </div>
-      ) : showGeminiReport ? (
-        <textarea
-          className="w-full h-[500px] p-[10px] dark:bg-[#2d3748] bg-white dark:text-white text-gray-700 rounded-[10px]"
-          value={geminiReport}
-          readOnly
-        />
-      ) : (
-        <div className="flex flex-col max-h-[500px] overflow-y-auto">
-          {/* Table Headers */}
-          <div className="flex justify-between items-center border-b dark:border-white border-gray-700 p-[10px] h-[50px] sticky top-0 bg-[#1F2937] z-10">
-            <h1 className="font-Montserrat text-[14px] dark:text-white text-gray-300 font-[600] w-1/3 px-[10px]">
-              Keyword
-            </h1>
-            <h1 className="font-Montserrat text-[14px] dark:text-white text-center text-gray-300 font-[600] w-1/3">
-              Search Volume
-            </h1>
-            <h1 className="font-Montserrat text-[14px] dark:text-white text-center text-gray-300 font-[600] w-1/3">
-              Commercial Value
-            </h1>
-          </div>
 
-          {/* Table Rows */}
-          {loading
-            ? Array.from({ length: 10 }).map((_, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center border-b dark:border-white border-[#34006133] p-[10px] h-[50px]"
+          {/* Right Panel */}
+          <div className={`${isCollapsed ? "w-3/4" : "w-1/2"} p-4 transition-all duration-300`}>
+            <div className="flex gap-4 mb-4">
+              <button
+                onClick={handleStartResearch}
+                className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded"
+              >
+                Start Research
+              </button>
+              {keyWords.length > 0 && (
+                <button
+                  onClick={downloadKeywordsExcel}
+                  className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
                 >
-                  <div className="w-1/3 h-4 bg-[#d1d1d1] rounded animate-pulse"></div>
-                  <div className="w-1/3 h-4 bg-[#d1d1d1] rounded animate-pulse"></div>
-                  <div className="w-1/3 h-4 bg-[#d1d1d1] rounded animate-pulse"></div>
+                  Download Keyword Report (Excel)
+                </button>
+              )}
+            </div>
+
+            {/* Keyword Report Section */}
+            {showKeywordReport && (
+              <div className="space-y-6">
+                {loading ? (
+                  <div className="text-center p-4 text-gray-300">
+                    🔄 Loading keyword data...
+                  </div>
+                ) : (
+                  <>
+                    <div className="max-h-[400px] overflow-y-auto w-full">
+                      <table className="w-full text-left border-collapse">
+                        <thead className="bg-gray-800 text-white">
+                          <tr>
+                            <th className="p-2">Keyword</th>
+                            <th className="p-2 text-center">Search Volume</th>
+                            <th className="p-2 text-center">Commercial Value</th>
+                          </tr>
+                        </thead>
+                        <tbody className="text-white">
+                          {keyWords.map((keyword, index) => (
+                            <tr key={index} className="border-t border-gray-600">
+                              <td className="p-2">{keyword.keyword}</td>
+                              <td className="p-2 text-center">
+                                {keyword.search_volume.toLocaleString()}
+                              </td>
+                              <td className="p-2 text-center">
+                                {keyword.commercial_value.toLocaleString()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="w-full">
+                      <KeywordChart data={keyWords} />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Research in Progress State */}
+            {isResearching && !showGeminiReport && (
+              <div className="flex flex-col items-start space-y-4">
+                <h1 className="text-white text-xl">AI Marketing Research in Progress</h1>
+                <div className="flex items-center space-x-2 text-gray-300">
+                  <span className="text-xl">🔄</span>
+                  <span>Keyword Report in Progress...</span>
                 </div>
-              ))
-            : keyWords?.map((keyword, index) => (
-                <div
-                  key={index}
-                  className="flex justify-between items-center border-b dark:border-white border-gray-700 p-[20px] h-[70px] hover:bg-[#2d3748]"
-                >
-                  <h1 className="font-Montserrat text-[12px] dark:text-white text-gray-300 font-[400] w-1/3">
-                    {keyword.keyword}
-                  </h1>
-                  <h1 className="font-Montserrat text-[12px] dark:text-white text-center text-gray-300 font-[400] w-1/3">
-                    {keyword.search_volume.toLocaleString()}
-                  </h1>
-                  <h1 className="font-Montserrat text-[12px] dark:text-white text-center text-gray-300 font-[400] w-1/3">
-                    {keyword.commercial_value.toLocaleString()}
-                  </h1>
-                </div>
-              ))}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        /* Full-width Gemini Report */
+        <div className="w-full p-6 bg-[#2d3748] rounded-lg">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-white font-bold text-xl">📑 Gemini Report</h2>
+            <button
+              onClick={downloadGeminiReportWord}
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
+            >
+              Download Gemini Report (Word)
+            </button>
+          </div>
+          <div className="overflow-y-auto max-h-[600px] p-6 bg-[#1F2937] text-white rounded-lg text-lg leading-6">
+            <MarkdownRenderer markdownText={geminiReport} />
+          </div>
+          {geminiChartData.length > 0 && <GeminiChart data={geminiChartData} />}
         </div>
       )}
-
-      {/* Start Research Button */}
-      <div>
-        {!isResearching && (
-          <button
-            onClick={handleStartResearch}
-            className="text-[#FFFFFF] dark:bg-[#3b82f5] bg-purple-500 hover:bg-purple-600 font-Montserrat font-semibold text-[12px] py-[09px] px-[20px] rounded-[8px]"
-          >
-            Start Research
-          </button>
-        )}
-      </div>
     </div>
   );
 };
