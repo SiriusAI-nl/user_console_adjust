@@ -29,7 +29,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen }) => {
   return (
     <div
       id="main"
-      className="px-[30px] md:px-[50px] dark:text-white text-gray-300 dark:bg-[#3D3D3D] bg-[#1F2937] border-[1px] border-gray-700 py-[30px] w-fit rounded-[10px] lg:px-[50px] overflow-hidden hover:border-purple-500"
+      className="px-[30px] md:px-[50px] dark:text-white text-gray-300 dark:bg-[#3D3D3D] bg-[#1F2937] border-[1px] border-gray-700 py-[30px] w-full  rounded-[10px] lg:px-[50px] overflow-hidden hover:border-purple-500"
     >
       <div className="flex items-center gap-[10px] mb-[15px]">
         <MdStarBorder className="text-2xl text-purple-500" />
