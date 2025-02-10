@@ -14,7 +14,7 @@ const KeywordChart = ({ data = [] }) => {
   if (!data || data.length === 0) {
     return (
       <div className="w-[100%] h-90 flex justify-center items-center p-4 bg-[#1F2937] rounded-lg">
-        <p className="text-white text-lg">No data available for visualization</p>
+        <p className="text-white text-lg">No data available</p>
       </div>
     );
   }
