@@ -57,7 +57,7 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
       setGeminiChartData(chartData);
       setGeminiReport(formattedText);
       setShowGeminiReport(true);
-      setShowKeywordReport(false); // Hide keyword report when Gemini report is shown
+      setShowKeywordReport(false);
     } catch (error) {
       console.error("Error fetching Gemini Report:", error);
     } finally {
@@ -111,110 +111,115 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
 
   return (
     <div className="flex h-full w-full py-6 px-6 border dark:border-white border-gray-700 hover:border-purple-500 rounded-lg bg-[#1F2937]">
-      {/* Left Panel */}
-      <div className="w-1/4 p-4">
-        <div className="flex flex-col gap-4">
-          <h1 className="dark:text-white text-gray-300 text-lg">
-            {loading ? "Marketing Research in Progress" : "Starting Research"}
-          </h1>
-          {!isResearching && !showGeminiReport && (
-            <button
-              onClick={handleShowKeywordReport}
-              className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded"
-            >
-              Show Keyword Report
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Right Panel */}
-      <div className="w-3/4 p-4">
-        {/* Header with Buttons */}
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-white text-xl">
-            {loading ? "Marketing Research in Progress" : ""}
-            {showGeminiReport && "Marketing Report"}
-          </h1>
-          <div className="flex gap-4">
-            {!loading && !isResearching && keyWords.length > 0 && !showGeminiReport && (
+      {!showGeminiReport && (
+        <>
+          {/* Left Panel */}
+          <div className="w-1/4 p-4">
+            <div className="flex flex-col gap-4">
+              <h1 className="dark:text-white text-gray-300 text-lg">
+                {loading ? "Marketing Research in Progress" : "Starting Research"}
+              </h1>
               <button
-                onClick={handleStartResearch}
+                onClick={handleShowKeywordReport}
                 className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded"
               >
-                Start Research
+                Show Keyword Report
               </button>
+            </div>
+          </div>
+
+          {/* Right Panel for Keyword Report */}
+          <div className="w-3/4 p-4">
+            <div className="flex justify-between items-center mb-6">
+              <div className="flex gap-4">
+                {!loading && !isResearching && keyWords.length > 0 && (
+                  <button
+                    onClick={handleStartResearch}
+                    className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded"
+                  >
+                    Start Research
+                  </button>
+                )}
+                {!loading && keyWords.length > 0 && (
+                  <button
+                    onClick={downloadKeywordsExcel}
+                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+                  >
+                    Download Keyword Report (Excel)
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {loading && (
+              <div className="flex items-center space-x-2 text-gray-300">
+                <span className="text-xl">🔄</span>
+                <span>Report in Progress...</span>
+              </div>
             )}
-            {!loading && keyWords.length > 0 && !showGeminiReport && (
+
+            {showKeywordReport && !loading && (
+              <div className="space-y-6">
+                <div className="max-h-[400px] overflow-y-auto w-full">
+                  <table className="w-full text-left border-collapse">
+                    <thead className="bg-gray-800 text-white">
+                      <tr>
+                        <th className="p-2">Keyword</th>
+                        <th className="p-2 text-center">Search Volume</th>
+                        <th className="p-2 text-center">Commercial Value</th>
+                      </tr>
+                    </thead>
+                    <tbody className="text-white">
+                      {keyWords.map((keyword, index) => (
+                        <tr key={index} className="border-t border-gray-600">
+                          <td className="p-2">{keyword.keyword}</td>
+                          <td className="p-2 text-center">{keyword.search_volume.toLocaleString()}</td>
+                          <td className="p-2 text-center">{keyword.commercial_value.toLocaleString()}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="w-full">
+                  <KeywordChart data={keyWords} />
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Full Width Marketing Report */}
+      {showGeminiReport && !loading && (
+        <div className="w-full">
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex items-center gap-4">
+              <h1 className="text-white text-xl">Marketing Report</h1>
               <button
-                onClick={downloadKeywordsExcel}
-                className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+                onClick={() => {
+                  setShowGeminiReport(false);
+                  setShowKeywordReport(true);
+                }}
+                className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded"
               >
-                Download Keyword Report (Excel)
+                Show Keyword Report
               </button>
-            )}
-            {showGeminiReport && (
-              <button
-                onClick={downloadGeminiReportWord}
-                className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded"
-              >
-                Download Gemini Report (Word)
-              </button>
-            )}
+            </div>
+            <button
+              onClick={downloadGeminiReportWord}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+            >
+              Download Gemini Report (Word)
+            </button>
+          </div>
+          <div className="w-full max-h-[calc(100vh-200px)] overflow-y-auto">
+            <div className="text-white text-lg leading-6 pr-4">
+              <MarkdownRenderer markdownText={geminiReport} />
+              {geminiChartData.length > 0 && <GeminiChart data={geminiChartData} />}
+            </div>
           </div>
         </div>
-
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center space-x-2 text-gray-300">
-            <span className="text-xl">🔄</span>
-            <span>Report in Progress...</span>
-          </div>
-        )}
-
-        {/* Keyword Report Section */}
-        {showKeywordReport && !loading && !showGeminiReport && (
-          <div className="space-y-6">
-            <div className="max-h-[400px] overflow-y-auto w-full">
-              <table className="w-full text-left border-collapse">
-                <thead className="bg-gray-800 text-white">
-                  <tr>
-                    <th className="p-2">Keyword</th>
-                    <th className="p-2 text-center">Search Volume</th>
-                    <th className="p-2 text-center">Commercial Value</th>
-                  </tr>
-                </thead>
-                <tbody className="text-white">
-                  {keyWords.map((keyword, index) => (
-                    <tr key={index} className="border-t border-gray-600">
-                      <td className="p-2">{keyword.keyword}</td>
-                      <td className="p-2 text-center">
-                        {keyword.search_volume.toLocaleString()}
-                      </td>
-                      <td className="p-2 text-center">
-                        {keyword.commercial_value.toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="w-full">
-              <KeywordChart data={keyWords} />
-            </div>
-          </div>
-        )}
-
-        {/* Gemini Report Section */}
-        {showGeminiReport && !loading && (
-          <div className="w-full bg-[#2d3748] rounded-lg">
-            <div className="overflow-y-auto max-h-[600px] p-6 bg-[#1F2937] text-white rounded-lg text-lg leading-6">
-              <MarkdownRenderer markdownText={geminiReport} />
-            </div>
-            {geminiChartData.length > 0 && <GeminiChart data={geminiChartData} />}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };
