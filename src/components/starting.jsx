@@ -168,7 +168,7 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
 
             {showKeywordReport && !loading && (
               <div className="space-y-6 w[100%]">
-                <div className="max-h-[150px] overflow-y-auto w-full">
+                <div className="max-h-[305px] overflow-y-auto w-full">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-800 text-white">
                       <tr>

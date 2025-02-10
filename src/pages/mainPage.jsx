@@ -149,6 +149,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
                   <span className="w-2 h-2 bg-white rounded-full animate-bounce delay-200"></span>
                 </div>
               </div>
+                <p className="text-white px-2">one moment please....</p>
             </div>
           )}
           <div ref={messagesEndRef} />

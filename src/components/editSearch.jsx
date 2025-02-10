@@ -34,7 +34,7 @@ const EditSearch = ({ setIsPlanning, setMenuOpen }) => {
       <div className="flex items-center gap-[10px] mb-[15px]">
         <MdStarBorder className="text-2xl text-purple-500" />
         <p className="font-Montserrat text-[16px] font-[500]">
-          AI Marketing Research for Benchmarking in 2025
+          Market Research planning
         </p>
       </div>
 
