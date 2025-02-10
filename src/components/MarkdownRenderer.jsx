@@ -5,7 +5,7 @@ import remarkGfm from "remark-gfm";
 
 const MarkdownRenderer = ({ markdownText }) => {
   return (
-    <div className="prose prose-sm p-4">
+    <div className="prose prose-sm p-2">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>
         {markdownText}
       </ReactMarkdown>

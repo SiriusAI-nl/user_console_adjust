@@ -13,7 +13,7 @@ import {
 const KeywordChart = ({ data = [] }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="w-full h-96 flex justify-center items-center p-4 bg-[#1F2937] rounded-lg">
+      <div className="w-[100%] h-90 flex justify-center items-center p-4 bg-[#1F2937] rounded-lg">
         <p className="text-white text-lg">No data available for visualization</p>
       </div>
     );
@@ -28,15 +28,14 @@ const KeywordChart = ({ data = [] }) => {
     .slice(0, 10);
 
   return (
-    <div className="w-full h-96 flex justify-center items-center p-4 bg-[#1F2937] rounded-lg">
-      <ResponsiveContainer width="100%" height={400}>
+    <div className="w-[100%] h-96 flex justify-center items-center bg-[#1F2937] rounded-lg">
+      <ResponsiveContainer width="100%" height={350}>
         <BarChart
           data={top10Data}
           margin={{
             top: 16,
             right: 16,
-            left: 40,
-            bottom: 90
+            bottom: 20
           }}
         >
           <CartesianGrid strokeDasharray="3 3" />

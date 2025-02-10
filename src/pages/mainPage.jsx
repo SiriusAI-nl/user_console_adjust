@@ -131,7 +131,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             ))
           ) : (
             <div className="h-[60%] text-center w-full flex flex-col justify-center items-center mt-20">
-              <h1 className="sm:text-[40px] text-[25px] font-[600] text-[#fafafa] flex">
+              <h1 className="sm:text-[40px] text-[22px] font-[600] text-[#fafafa] flex">
                 Welcome to
                 <span className="text-purple-500">&nbsp;SiriusAI</span>
               </h1>
@@ -142,7 +142,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
           )}
           {isAIType && (
             <div className="flex justify-start my-2">
-              <div className="bg-gray-700 p-3 rounded-lg">
+              <div className="bg-gray-700 p-2 rounded-lg">
                 <div className="flex items-center gap-x-1">
                   <span className="w-2 h-2 bg-white rounded-full animate-bounce"></span>
                   <span className="w-2 h-2 bg-white rounded-full animate-bounce delay-100"></span>

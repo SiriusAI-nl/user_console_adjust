@@ -48,8 +48,10 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
           }));
 
         formattedText = reportData.candidates
-          .map((candidate) =>
-            candidate.content?.parts?.map((part) => part.text).join("\n") || ""
+          .map(
+            (candidate) =>
+              candidate.content?.parts?.map((part) => part.text).join("\n") ||
+              ""
           )
           .join("\n\n");
       }
@@ -109,15 +111,21 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
     URL.revokeObjectURL(url);
   };
 
+  useEffect(() => {
+    handleShowKeywordReport();
+  }, []);
+
   return (
     <div className="flex h-full w-full py-6 px-6 border dark:border-white border-gray-700 hover:border-purple-500 rounded-lg bg-[#1F2937]">
       {!showGeminiReport && (
         <>
           {/* Left Panel */}
-          <div className="w-1/4 p-4">
+          {/* <div className="w-1/4 p-4">
             <div className="flex flex-col gap-4">
               <h1 className="dark:text-white text-gray-300 text-lg">
-                {loading ? "Marketing Research in Progress" : "Starting Research"}
+                {loading
+                  ? "Marketing Research in Progress"
+                  : "Starting Research"}
               </h1>
               <button
                 onClick={handleShowKeywordReport}
@@ -126,16 +134,16 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
                 Show Keyword Report
               </button>
             </div>
-          </div>
+          </div> */}
 
           {/* Right Panel for Keyword Report */}
-          <div className="w-3/4 p-4">
-            <div className="flex justify-between items-center mb-6">
+          <div className="w-[100%] h-full p-4">
+            <div className="flex justify-between items-center mb-4">
               <div className="flex gap-4">
                 {!loading && !isResearching && keyWords.length > 0 && (
                   <button
                     onClick={handleStartResearch}
-                    className="bg-purple-500 hover:bg-purple-600 text-white font-semibold py-2 px-4 rounded"
+                    className="bg-purple-500 hover:bg-purple-600 text-white font text-[14px] py-2 px-4 rounded"
                   >
                     Start Research
                   </button>
@@ -143,7 +151,7 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
                 {!loading && keyWords.length > 0 && (
                   <button
                     onClick={downloadKeywordsExcel}
-                    className="bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 px-4 rounded"
+                    className="bg-blue-500 hover:bg-blue-600 text-white font text-[14px] py-2 px-4 rounded"
                   >
                     Download Keyword Report (Excel)
                   </button>
@@ -153,28 +161,36 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
 
             {loading && (
               <div className="flex items-center space-x-2 text-gray-300">
-                <span className="text-xl">🔄</span>
+                <span className="text-[14px]">🔄</span>
                 <span>Report in Progress...</span>
               </div>
             )}
 
             {showKeywordReport && !loading && (
-              <div className="space-y-6">
-                <div className="max-h-[400px] overflow-y-auto w-full">
+              <div className="space-y-6 w[100%]">
+                <div className="max-h-[150px] overflow-y-auto w-full">
                   <table className="w-full text-left border-collapse">
                     <thead className="bg-gray-800 text-white">
                       <tr>
-                        <th className="p-2">Keyword</th>
-                        <th className="p-2 text-center">Search Volume</th>
-                        <th className="p-2 text-center">Commercial Value</th>
+                        <th className="p-2 text-[13px]">Keyword</th>
+                        <th className="p-2 text-center text-[13px]">
+                          Search Volume
+                        </th>
+                        <th className="p-2 text-center text-[13px]">
+                          Commercial Value
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="text-white">
                       {keyWords.map((keyword, index) => (
                         <tr key={index} className="border-t border-gray-600">
-                          <td className="p-2">{keyword.keyword}</td>
-                          <td className="p-2 text-center">{keyword.search_volume.toLocaleString()}</td>
-                          <td className="p-2 text-center">{keyword.commercial_value.toLocaleString()}</td>
+                          <td className="p-2 text-[12px]">{keyword.keyword}</td>
+                          <td className="p-2 text-center text-[12px]">
+                            {keyword.search_volume.toLocaleString()}
+                          </td>
+                          <td className="p-2 text-center text-[12px]">
+                            {keyword.commercial_value.toLocaleString()}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -192,7 +208,7 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
       {/* Full Width Marketing Report */}
       {showGeminiReport && !loading && (
         <div className="w-full">
-          <div className="flex justify-between items-center mb-6">
+          <div className="flex justify-between items-center mb-4">
             <div className="flex items-center gap-4">
               <h1 className="text-white text-xl">Marketing Report</h1>
               <button
@@ -213,9 +229,11 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
             </button>
           </div>
           <div className="w-full max-h-[calc(100vh-200px)] overflow-y-auto">
-            <div className="text-white text-lg leading-6 pr-4">
+            <div className="text-white text-sm leading-6 pr-4">
               <MarkdownRenderer markdownText={geminiReport} />
-              {geminiChartData.length > 0 && <GeminiChart data={geminiChartData} />}
+              {geminiChartData.length > 0 && (
+                <GeminiChart data={geminiChartData} />
+              )}
             </div>
           </div>
         </div>
