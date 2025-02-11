@@ -36,30 +36,30 @@ const SignUp = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    navigate("/home");
-    console.log(form);
-    // try {
-    //   setLoading(true);
-    //   const response = await axios.post(`${registerApi}register-user`, form);
-    //   if (response.status === 200 || response.statusText === "OK") {
-    //     toast.success("Registration successful");
-    //     setForm({
-    //       first_name: "",
-    //       last_name: "",
-    //       email: "",
-    //       password: "",
-    //     });
-    //     setTimeout(() => {
-    //       navigate("/");
-    //     }, 3000);
-    //   }
-    // } catch (error) {
-    //   toast.error("Something went wrong . Please try again.");
-    //   setError(error.message);
-    //   setLoading(false);
-    // } finally {
-    //   setLoading(false);
-    // }
+
+    try {
+      setLoading(true);
+      const response = await axios.post(`${registerApi}register-user`, form);
+      if (response.status === 200 || response.statusText === "OK") {
+        toast.success("Registration successful");
+
+        setTimeout(() => {
+          setForm({
+            first_name: "",
+            last_name: "",
+            email: "",
+            password: "",
+          });
+          navigate("/");
+        }, 2000);
+      }
+    } catch (error) {
+      toast.error("Something went wrong . Please try again.");
+      setError(error.message);
+      setLoading(false);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const showHandle = () => {
@@ -69,7 +69,7 @@ const SignUp = () => {
     <div className="w-full max-h-screen flex">
       <ToastContainer
         position="top-right"
-        autoClose={3000}
+        autoClose={2000}
         hideProgressBar={false}
         newestOnTop={false}
         closeOnClick
