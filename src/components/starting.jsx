@@ -4,8 +4,8 @@ import axios from "axios";
 import * as XLSX from "xlsx";
 import { marked } from "marked";
 import MarkdownRenderer from "./MarkdownRenderer";
-import KeywordChart from "@/components/KeywordChart.jsx";
-import GeminiChart from "@/components/GeminiChart.jsx";
+import KeywordChart from "./keywordchart";
+import GeminiChart from "./GeminiChart";
 
 const keyword_api_url = import.meta.env.VITE_API_URL;
 
