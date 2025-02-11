@@ -104,7 +104,7 @@ const Starting = ({ isPlanning, setIsPlanning }) => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "Gemini_Report.doc";
+    a.download = "Market_Report.doc";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
