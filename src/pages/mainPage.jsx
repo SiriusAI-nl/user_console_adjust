@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Plus } from "lucide-react";
 import SearchBox from "@/components/searchBox";
 import EditSearch from "@/components/editSearch";
 import Message from "@/components/Message";
@@ -18,8 +19,14 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
   const [error, setError] = useState(null);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isPlansLoading, setIsPlansLoading] = useState(false);
+  const [uploadFileBtn, setUploadFileBtn] = useState(false);
   const API_URL = import.meta.env.VITE_API_URL;
   const wsRef = useRef(null);
+
+  const handleUploadFile = () => {
+    setUploadFileBtn(!uploadFileBtn);
+    console.log("hiihihih");
+  };
 
   const fetchPlans = async () => {
     setIsPlansLoading(true);
@@ -117,6 +124,12 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
 
   return (
     <div className="sm:static relative flex justify-center px-5 gap-x-5 h-[89vh]">
+      {/* section for upload file */}
+      <div
+        className={`upload-box absolute bottom-[80px] left-[100px] bg-white w-[100px] h-[100px] ${
+          uploadFileBtn ? "flex" : "hidden"
+        }`}
+      ></div>
       <motion.div
         className={`flex flex-col justify-between ${
           isPlanning ? "w-[35%]" : "max-w-[713px]"
@@ -149,7 +162,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
                   <span className="w-2 h-2 bg-white rounded-full animate-bounce delay-200"></span>
                 </div>
               </div>
-                <p className="text-white px-2">one moment please....</p>
+              <p className="text-white px-2">one moment please....</p>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -169,6 +182,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             handleMessage();
           }}
         >
+          <Plus onClick={handleUploadFile} />
           <textarea
             type="text"
             placeholder="Ask a follow-up question..."
