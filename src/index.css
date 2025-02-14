@@ -127,3 +127,10 @@
 ::-webkit-scrollbar{
   width: 0px;
 }
+
+.custom_srollbar::-webkit-scrollbar{
+  width: 3px;
+}
+.custom_srollbar::-webkit-scrollbar-thumb{
+  background-color: white;
+}

@@ -8,6 +8,13 @@ import Starting from "@/components/starting";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
 import { FaCircleStop } from "react-icons/fa6";
 import axios from "axios";
+import {
+  FaFileExcel,
+  FaFilePdf,
+  FaFilePowerpoint,
+  FaFileWord,
+  FaTextWidth,
+} from "react-icons/fa";
 
 const MainPage = ({ setMenuOpen, setIsBtn }) => {
   const [isPlanning, setIsPlanning] = useState(false);
@@ -124,12 +131,6 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
 
   return (
     <div className="sm:static relative flex justify-center px-5 gap-x-5 h-[89vh]">
-      {/* section for upload file */}
-      <div
-        className={`upload-box absolute bottom-[80px] left-[100px] bg-white w-[100px] h-[100px] ${
-          uploadFileBtn ? "flex" : "hidden"
-        }`}
-      ></div>
       <motion.div
         className={`flex flex-col justify-between ${
           isPlanning ? "w-[35%]" : "max-w-[713px]"
@@ -176,13 +177,64 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
           )}
         </div>
         <form
-          className="sm:mb-0 mb-3 dark:bg-[#3D3D3D] bg-[#1F2937] border border-gray-700 hover:border-purple-500 w-full rounded-[10px] flex items-center gap-2 px-4 py-2 max-h-[57px] text-gray-300"
+          className="relative sm:mb-0 mb-3 dark:bg-[#3D3D3D] bg-[#1F2937] border border-gray-700 hover:border-purple-500 w-full rounded-[10px] flex items-center gap-2 px-4 py-2 max-h-[57px] text-gray-300"
           onSubmit={(e) => {
             e.preventDefault();
             handleMessage();
           }}
         >
-          <Plus onClick={handleUploadFile} />
+          <div
+            className={`${
+              uploadFileBtn ? "scale-y-100" : "scale-y-0"
+            } transition-all duration-200 origin-bottom absolute bottom-16 left-0 mt-2 w-72 rounded-md bg-gray-800 p-1 shadow-lg ring-1 ring-black ring-opacity-5`}
+          >
+            <div className="py-1">
+              <label
+                htmlFor="txt"
+                className="cursor-pointer flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-gray-200 hover:bg-gray-700"
+              >
+                <div className="flex items-center gap-3">
+                  <FaTextWidth className="h-4 w-4" />
+                  Text
+                </div>
+              </label>
+              <label
+                htmlFor="worddoc"
+                className="cursor-pointer flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-200 hover:bg-gray-700"
+              >
+                <FaFileWord className="h-4 w-4" />
+                Word document
+              </label>
+              <label
+                htmlFor="excel"
+                className="cursor-pointer flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-gray-200 hover:bg-gray-700"
+              >
+                <div className="flex items-center gap-3">
+                  <FaFileExcel className="h-4 w-4" />
+                  Excel 
+                </div>
+              </label>
+              <label
+                htmlFor="powerpoint"
+                className="cursor-pointer flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-gray-200 hover:bg-gray-700"
+              >
+                <FaFilePowerpoint className="h-4 w-4" />
+                Powerpoint
+              </label>
+              <label
+                htmlFor="pdf"
+                className="cursor-pointer flex w-full items-center justify-between rounded-md px-3 py-2 text-sm text-gray-200 hover:bg-gray-700"
+              >
+                <div className="flex items-center gap-3">
+                  <FaFilePdf className="h-4 w-4" />
+                  PDF
+                </div>
+              </label>
+            </div>
+          </div>
+          <button className="rounded-full p-1 bg-transparent hover:bg-white/10">
+            <Plus onClick={handleUploadFile} />
+          </button>
           <textarea
             type="text"
             placeholder="Ask a follow-up question..."
