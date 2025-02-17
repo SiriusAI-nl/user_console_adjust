@@ -55,7 +55,7 @@ const Layout = ({ children, setMenuOpen, menuOpen ,isBtn, setIsBtn}) => {
                         <img src="/images/logo.png" alt="" className='object-cover w-fit z-[3]' />
                     </Link>
                     <div className="flex items-center gap-x-4">
-                        <Link to={"/home/main"} className="text-xl"><BsFillGrid3X3GapFill className='text-[#D9D9D9]' /></Link>
+                        {/* <Link to={"/home/main"} className="text-xl"><BsFillGrid3X3GapFill className='text-[#D9D9D9]' /></Link> */}
                         <div id='icon' className='border-[1px] dark:border-white border-[#34006114] p-3 rounded-full mr-2' >
                             <FaUserAlt className='cursor-pointer text-white'/>
                         </div>
