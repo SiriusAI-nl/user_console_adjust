@@ -15,8 +15,12 @@ import {
   FaFileWord,
   FaTextWidth,
 } from "react-icons/fa";
+import { callN8nWebhook } from "@/hooks/webhookService";
+
+
 
 const MainPage = ({ setMenuOpen, setIsBtn }) => {
+  // State declarations
   const [isPlanning, setIsPlanning] = useState(false);
   const [newtext, setNewtext] = useState("");
   const [isAIType, setIsAIType] = useState(false);
@@ -27,14 +31,216 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isPlansLoading, setIsPlansLoading] = useState(false);
   const [uploadFileBtn, setUploadFileBtn] = useState(false);
+  
+  // Refs and constants
   const API_URL = import.meta.env.VITE_API_URL;
+  const PDF_API_URL = import.meta.env.VITE_PDF_API_URL;
   const wsRef = useRef(null);
-
-  const handleUploadFile = () => {
-    setUploadFileBtn(!uploadFileBtn);
-    console.log("hiihihih");
+  const messagesEndRef = useRef(null);
+  
+  // Toggle upload menu
+  const toggleUploadMenu = () => {
+    setUploadFileBtn(prev => !prev);
   };
+  useEffect(() => {
+    console.log('Environment Variables:');
+    console.log('PDF API URL:', import.meta.env.VITE_PDF_API_URL);
+    console.log('Main API URL:', import.meta.env.VITE_API_URL);
+  }, []);
 
+  // File upload handler
+  // Update the handleFileUpload function
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  console.log('File selected:', {
+    name: file.name,
+    size: file.size,
+    type: file.type
+  });
+  console.log('Using PDF API URL:', PDF_API_URL);
+
+  // Update UI first
+  setMessages(prev => [...prev, {
+    message: `Uploading file: ${file.name}`,
+    sender: "user"
+  }]);
+  setIsAIType(true);
+
+  // Create FormData
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    // Add retry logic
+    const maxRetries = 3;
+    let attempt = 0;
+    let success = false;
+
+    while (attempt < maxRetries && !success) {
+      try {
+        console.log(`Upload attempt ${attempt + 1} to: ${PDF_API_URL}/upload`);
+        const response = await axios.post(`${PDF_API_URL}/upload`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          },
+          timeout: 300000, // 5 minute timeout
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            console.log('Upload progress:', percentCompleted + '%');
+          }
+        });
+
+        console.log('Upload response:', response.data);
+
+        if (response.data.status === 'success') {
+          success = true;
+          setMessages(prev => [...prev, {
+            message: `PDF processed successfully. Created collection: ${response.data.collection_name} with ${response.data.pages_processed} pages.`,
+            sender: 'AI'
+          }]);
+        }
+      } catch (retryError) {
+        attempt++;
+        if (attempt === maxRetries) throw retryError;
+        console.log(`Upload attempt ${attempt} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+      }
+    }
+  } catch (error) {
+    console.error('Upload error:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status,
+      url: `${PDF_API_URL}/upload`
+    });
+    
+    const errorMessage = error.response?.data?.detail || error.message || 'Error uploading file';
+    setError(errorMessage);
+    setMessages(prev => [...prev, {
+      message: `Error processing PDF: ${errorMessage}`,
+      sender: 'AI'
+    }]);
+  } finally {
+    setIsAIType(false);
+    setUploadFileBtn(false);
+  }
+};
+
+  // Message handler
+  // Updated handleMessage function to properly handle HTML responses
+
+const handleMessage = async () => {
+  if (isType || !newtext.trim()) return;
+
+  // Add message to UI immediately
+  setMessages((prevMessages) => [
+    ...prevMessages,
+    { message: newtext, sender: "user" },
+  ]);
+  setIsType(true);
+  setNewtext("");
+  setIsChatLoading(true);
+  setIsAIType(true);
+
+  try {
+    // Check if this is a competitor analysis request for beds/mattresses
+    const lowerText = newtext.toLowerCase();
+    
+    // Keywords for competitor analysis on beds and mattresses
+    const competitorKeywords = ['competitor', 'concurrentie', 'concurrenten', 'analyse', 'analysis'];
+    const productKeywords = ['bed', 'bedden', 'matras', 'matrassen', 'mattress'];
+    
+    const hasCompetitorKeyword = competitorKeywords.some(keyword => lowerText.includes(keyword));
+    const hasProductKeyword = productKeywords.some(keyword => lowerText.includes(keyword));
+    
+    // If it's a competitor analysis request for beds/mattresses, use n8n webhook
+    if (hasCompetitorKeyword && hasProductKeyword) {
+      try {
+        // Add a message indicating we're using the n8n workflow
+        setMessages(prev => [...prev, {
+          message: "Even geduld, ik start een concurrentieanalyse voor bedden en matrassen...",
+          sender: "AI"
+        }]);
+        
+        // Call the webhook
+        const topic = "competitor_analysis";
+        const result = await callN8nWebhook(topic, newtext);
+        
+        if (result.success) {
+          // Display the summary in the chat
+          setMessages(prev => [...prev, {
+            message: result.message,
+            sender: "AI"
+          }]);
+          
+          // Add key findings as separate messages for better readability
+          if (result.summary) {
+            const paragraphs = result.summary.split("\n\n");
+            
+            // Add a small delay between messages for better user experience
+            for (let i = 0; i < paragraphs.length; i++) {
+              if (paragraphs[i].trim()) {
+                setTimeout(() => {
+                  setMessages(prev => [...prev, {
+                    message: paragraphs[i],
+                    sender: "AI"
+                  }]);
+                }, i * 300);
+              }
+            }
+          }
+          
+          // Offer to show the full HTML if needed
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              message: "Wil je het volledige rapport bekijken? Ik kan je ook meer specifieke informatie geven over bepaalde aspecten.",
+              sender: "AI"
+            }]);
+          }, (result.summary ? result.summary.split("\n\n").length : 0) * 300 + 300);
+          
+          setIsSearchPlan(true);
+        } else {
+          // Handle error
+          setMessages(prev => [...prev, {
+            message: result.message || "Er is een fout opgetreden bij het uitvoeren van de concurrentieanalyse.",
+            sender: "AI"
+          }]);
+        }
+      } catch (error) {
+        console.error("n8n webhook error:", error);
+        setMessages(prev => [...prev, {
+          message: "Er is een fout opgetreden bij het uitvoeren van de concurrentieanalyse. Probeer het later nog eens.",
+          sender: "AI"
+        }]);
+      }
+    } else {
+      // Regular message handling with WebSocket
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ message: newtext }));
+      } else {
+        setError("WebSocket is not connected.");
+        setMessages(prev => [...prev, {
+          message: "Sorry, de verbinding is verbroken. Probeer het opnieuw.",
+          sender: "AI"
+        }]);
+      }
+    }
+  } catch (error) {
+    setError("Failed to send message. Please try again.");
+    console.error("Message handling error:", error);
+    setMessages(prev => [...prev, {
+      message: "Er is een fout opgetreden. Probeer het opnieuw.",
+      sender: "AI"
+    }]);
+  } finally {
+    setIsType(false);
+    setIsChatLoading(false);
+    setIsAIType(false);
+  }
+};
+  // Fetch plans
   const fetchPlans = async () => {
     setIsPlansLoading(true);
     try {
@@ -47,6 +253,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     }
   };
 
+  // WebSocket setup
   useEffect(() => {
     const ws = new WebSocket(import.meta.env.VITE_WEBSOCKET_URL);
 
@@ -77,45 +284,25 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     wsRef.current = ws;
 
     return () => {
-      ws.close();
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.close();
+      }
     };
   }, []);
 
+  // Initial plans fetch
   useEffect(() => {
     fetchPlans();
   }, []);
 
-  const messagesEndRef = useRef(null);
+  // Auto-scroll messages
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages]);
 
-  const handleMessage = async () => {
-    if (isType || !newtext.trim()) return;
-
-    setMessages((prevMessages) => [
-      ...prevMessages,
-      { message: newtext, sender: "user" },
-    ]);
-    setIsType(true);
-    setNewtext("");
-    setIsChatLoading(true);
-    setIsAIType(true);
-
-    try {
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ message: newtext }));
-      } else {
-        setError("WebSocket is not connected.");
-      }
-    } catch (error) {
-      setError("Failed to send message. Please try again.");
-      console.error("WebSocket send error:", error);
-    }
-  };
-
+  // Window resize handling
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const [isMedium, setIsMedium] = useState(false);
 
@@ -229,11 +416,33 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
                   <FaFilePdf className="h-4 w-4" />
                   PDF
                 </div>
+                <input
+  type="file"
+  id="pdf"
+  accept=".pdf"
+  className="hidden"
+  onClick={(e) => {
+    // Reset the input value to ensure onChange fires even if same file is selected
+    e.target.value = null;
+  }}
+  onChange={(e) => {
+    console.log('File input change triggered');
+    if (e.target.files && e.target.files[0]) {
+      handleFileUpload(e);
+    } else {
+      console.log('No file selected');
+    }
+  }}
+/>
               </label>
             </div>
           </div>
-          <button className="rounded-full p-1 bg-transparent hover:bg-white/10">
-            <Plus onClick={handleUploadFile} />
+          <button
+            type="button"
+            className="rounded-full p-1 bg-transparent hover:bg-white/10"
+            onClick={toggleUploadMenu}
+          >
+            <Plus />
           </button>
           <textarea
             type="text"

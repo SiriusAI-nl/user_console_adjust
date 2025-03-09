@@ -11,6 +11,7 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
+import { useNavigate } from 'react-router-dom';
 
 import { FaPersonHalfDress } from "react-icons/fa6";
 import { LuArrowDownToLine } from "react-icons/lu";
@@ -71,16 +72,23 @@ const Drawer = styled(MuiDrawer, { shouldForwardProp: (prop) => prop !== 'open'}
 function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
   const [activeItem, setActiveItem] = useState(null);
   const theme = useTheme();
-
+  const navigate = useNavigate(); // Add navigate hook for routing
 
   const handleDrawerToggle = () => {
     setMenuOpen((prev) => !prev);
   };
 
+  // Add route handling function
+  const handleItemClick = (route) => {
+    navigate(route);
+    setActiveItem(route);
+  };
+
+  // Updated with route information
   const dataArr = [
-    { name: "Agents", icon: "/images/user.png" },
-    { name: "Download", icon: "/images/download.png" },
-    { name: "Save", icon: "/images/save.png" },
+    { name: "Agents", icon: "/images/user.png", route: "/home/agent" },
+    { name: "Download", icon: "/images/download.png", route: "/home" },
+    { name: "Save", icon: "/images/save.png", route: "/home" },
   ];
 
   return (
@@ -97,10 +105,11 @@ function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
         <Divider />
 
         <List style={{ marginTop: "100px", width: menuOpen ? "100%" : "80%"}}>
-          {dataArr.map(({ name, icon }) => (
+          {dataArr.map(({ name, icon, route }) => (
             <ListItem key={name} disablePadding sx={{ display: 'block' }}>
               <ListItemButton
-                className={`group list-item-button`}
+                className={`group list-item-button ${route === "/home/agent" ? "border-yellow-500 border" : ""}`}
+                onClick={() => handleItemClick(route)}
                 sx={{
                   minHeight: 48,
                   justifyContent: "center",
@@ -113,6 +122,9 @@ function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
                     backgroundColor: '#A854f7',
                     color: 'white',
                   },
+                  ...(name === "Agents" && {
+                    border: '1px solid #eab308', // Add yellow border for Agents
+                  }),
                 }}
               >
                 <ListItemIcon
@@ -133,15 +145,12 @@ function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
                     alt=""
                     className={`${menuOpen && "ml-[5px]"} w-[20px] h-[20px] transition duration-300 ease-in-out text-white`}
                   />
-
-
-
                 </ListItemIcon>
                 <ListItemText
                   primary={name}
                   sx={{
                     opacity: menuOpen ? 1 : 0,
-                    color: activeItem === name ? 'white' : 'inherit', // Change text color on active
+                    color: activeItem === route ? 'white' : 'inherit', // Change text color on active
                     transition: 'color 0.3s ease',
                     '&:hover': {
                       color: 'white', // Text color change on hover
@@ -152,10 +161,6 @@ function Sidebar({ setMenuOpen, menuOpen, isBtn }) {
             </ListItem>
           ))}
         </List>
-
-
-
-
       </Drawer>
     </Box>
   );

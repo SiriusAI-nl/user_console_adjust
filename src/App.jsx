@@ -5,7 +5,9 @@ import { Login } from './pages/login';
 import Signup from './pages/signUp';
 import MainPage from './pages/mainPage';
 import Home from './pages/home';
+//import AgentPage from './pages/AgentsPage'; // Import the new Agent page
 import { useState } from 'react';
+import Agent from './pages/AgentMarketPlace'; // Import the new Agent page
 
 // ProtectedRoute Component
 const ProtectedRoute = ({ children }) => {
@@ -38,6 +40,7 @@ function App() {
         >
           <Route index element={<MainPage isBtn={isBtn} setIsBtn={setIsBtn} setMenuOpen={setMenuOpen} />} />
           <Route path="main" element={<Home />} />
+          <Route path="agent" element={<Agent />} /> {/* Add the new agent route */}
         </Route>
       </Routes>
     </BrowserRouter>
