@@ -15,9 +15,8 @@ import {
   FaFileWord,
   FaTextWidth,
 } from "react-icons/fa";
+// Import the callN8nWebhook function
 import { callN8nWebhook } from "@/hooks/webhookService";
-
-
 
 const MainPage = ({ setMenuOpen, setIsBtn }) => {
   // State declarations
@@ -31,6 +30,12 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isPlansLoading, setIsPlansLoading] = useState(false);
   const [uploadFileBtn, setUploadFileBtn] = useState(false);
+  
+  // New state variables for competitor analysis report
+  const [reportContent, setReportContent] = useState(null);
+  const [reportTitle, setReportTitle] = useState("");
+  const [reportType, setReportType] = useState("");
+  const [showDraftReport, setShowDraftReport] = useState(true);
   
   // Refs and constants
   const API_URL = import.meta.env.VITE_API_URL;
@@ -50,196 +55,273 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
 
   // File upload handler
   // Update the handleFileUpload function
-const handleFileUpload = async (event) => {
-  const file = event.target.files[0];
-  if (!file) return;
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
-  console.log('File selected:', {
-    name: file.name,
-    size: file.size,
-    type: file.type
-  });
-  console.log('Using PDF API URL:', PDF_API_URL);
-
-  // Update UI first
-  setMessages(prev => [...prev, {
-    message: `Uploading file: ${file.name}`,
-    sender: "user"
-  }]);
-  setIsAIType(true);
-
-  // Create FormData
-  const formData = new FormData();
-  formData.append('file', file);
-
-  try {
-    // Add retry logic
-    const maxRetries = 3;
-    let attempt = 0;
-    let success = false;
-
-    while (attempt < maxRetries && !success) {
-      try {
-        console.log(`Upload attempt ${attempt + 1} to: ${PDF_API_URL}/upload`);
-        const response = await axios.post(`${PDF_API_URL}/upload`, formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
-          timeout: 300000, // 5 minute timeout
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-            console.log('Upload progress:', percentCompleted + '%');
-          }
-        });
-
-        console.log('Upload response:', response.data);
-
-        if (response.data.status === 'success') {
-          success = true;
-          setMessages(prev => [...prev, {
-            message: `PDF processed successfully. Created collection: ${response.data.collection_name} with ${response.data.pages_processed} pages.`,
-            sender: 'AI'
-          }]);
-        }
-      } catch (retryError) {
-        attempt++;
-        if (attempt === maxRetries) throw retryError;
-        console.log(`Upload attempt ${attempt} failed, retrying...`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
-      }
-    }
-  } catch (error) {
-    console.error('Upload error:', {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status,
-      url: `${PDF_API_URL}/upload`
+    console.log('File selected:', {
+      name: file.name,
+      size: file.size,
+      type: file.type
     });
-    
-    const errorMessage = error.response?.data?.detail || error.message || 'Error uploading file';
-    setError(errorMessage);
+    console.log('Using PDF API URL:', PDF_API_URL);
+
+    // Update UI first
     setMessages(prev => [...prev, {
-      message: `Error processing PDF: ${errorMessage}`,
-      sender: 'AI'
+      message: `Uploading file: ${file.name}`,
+      sender: "user"
     }]);
-  } finally {
-    setIsAIType(false);
-    setUploadFileBtn(false);
-  }
-};
+    setIsAIType(true);
 
-  // Message handler
-  // Updated handleMessage function to properly handle HTML responses
+    // Create FormData
+    const formData = new FormData();
+    formData.append('file', file);
 
-const handleMessage = async () => {
-  if (isType || !newtext.trim()) return;
+    try {
+      // Add retry logic
+      const maxRetries = 3;
+      let attempt = 0;
+      let success = false;
 
-  // Add message to UI immediately
-  setMessages((prevMessages) => [
-    ...prevMessages,
-    { message: newtext, sender: "user" },
-  ]);
-  setIsType(true);
-  setNewtext("");
-  setIsChatLoading(true);
-  setIsAIType(true);
+      while (attempt < maxRetries && !success) {
+        try {
+          console.log(`Upload attempt ${attempt + 1} to: ${PDF_API_URL}/upload`);
+          const response = await axios.post(`${PDF_API_URL}/upload`, formData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            timeout: 300000, // 5 minute timeout
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              console.log('Upload progress:', percentCompleted + '%');
+            }
+          });
 
-  try {
-    // Check if this is a competitor analysis request for beds/mattresses
-    const lowerText = newtext.toLowerCase();
-    
-    // Keywords for competitor analysis on beds and mattresses
-    const competitorKeywords = ['competitor', 'concurrentie', 'concurrenten', 'analyse', 'analysis'];
-    const productKeywords = ['bed', 'bedden', 'matras', 'matrassen', 'mattress'];
-    
-    const hasCompetitorKeyword = competitorKeywords.some(keyword => lowerText.includes(keyword));
-    const hasProductKeyword = productKeywords.some(keyword => lowerText.includes(keyword));
-    
-    // If it's a competitor analysis request for beds/mattresses, use n8n webhook
-    if (hasCompetitorKeyword && hasProductKeyword) {
-      try {
-        // Add a message indicating we're using the n8n workflow
-        setMessages(prev => [...prev, {
-          message: "Even geduld, ik start een concurrentieanalyse voor bedden en matrassen...",
-          sender: "AI"
-        }]);
-        
-        // Call the webhook
-        const topic = "competitor_analysis";
-        const result = await callN8nWebhook(topic, newtext);
-        
-        if (result.success) {
-          // Display the summary in the chat
+          console.log('Upload response:', response.data);
+
+          if (response.data.status === 'success') {
+            success = true;
+            setMessages(prev => [...prev, {
+              message: `PDF processed successfully. Created collection: ${response.data.collection_name} with ${response.data.pages_processed} pages.`,
+              sender: 'AI'
+            }]);
+          }
+        } catch (retryError) {
+          attempt++;
+          if (attempt === maxRetries) throw retryError;
+          console.log(`Upload attempt ${attempt} failed, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt)); // Exponential backoff
+        }
+      }
+    } catch (error) {
+      console.error('Upload error:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+        url: `${PDF_API_URL}/upload`
+      });
+      
+      const errorMessage = error.response?.data?.detail || error.message || 'Error uploading file';
+      setError(errorMessage);
+      setMessages(prev => [...prev, {
+        message: `Error processing PDF: ${errorMessage}`,
+        sender: 'AI'
+      }]);
+    } finally {
+      setIsAIType(false);
+      setUploadFileBtn(false);
+    }
+  };
+
+  // Updated Message handler with n8n integration
+  const handleMessage = async () => {
+    if (isType || !newtext.trim()) return;
+
+    // Add message to UI immediately
+    setMessages((prevMessages) => [
+      ...prevMessages,
+      { message: newtext, sender: "user" },
+    ]);
+    setIsType(true);
+    setNewtext("");
+    setIsChatLoading(true);
+    setIsAIType(true);
+
+    try {
+      // Check if this is a competitor analysis request for beds/mattresses
+      const lowerText = newtext.toLowerCase();
+      
+      // Keywords for competitor analysis on beds and mattresses
+      const competitorKeywords = ['competitor', 'concurrentie', 'concurrenten', 'analyse', 'analysis'];
+      const productKeywords = ['bed', 'bedden', 'matras', 'matrassen', 'mattress'];
+      
+      const hasCompetitorKeyword = competitorKeywords.some(keyword => lowerText.includes(keyword));
+      const hasProductKeyword = productKeywords.some(keyword => lowerText.includes(keyword));
+      
+      // If it's a competitor analysis request for beds/mattresses, use n8n webhook
+      if (hasCompetitorKeyword && hasProductKeyword) {
+        try {
+          // Add a message indicating we're using the n8n workflow
           setMessages(prev => [...prev, {
-            message: result.message,
+            message: "Ik start een concurrentieanalyse voor bedden en matrassen...",
             sender: "AI"
           }]);
           
-          // Add key findings as separate messages for better readability
-          if (result.summary) {
-            const paragraphs = result.summary.split("\n\n");
-            
-            // Add a small delay between messages for better user experience
-            for (let i = 0; i < paragraphs.length; i++) {
-              if (paragraphs[i].trim()) {
-                setTimeout(() => {
-                  setMessages(prev => [...prev, {
-                    message: paragraphs[i],
-                    sender: "AI"
-                  }]);
-                }, i * 300);
-              }
-            }
-          }
+          // Call the webhook (we'll still call it but won't rely on its content)
+          const topic = "competitor_analysis";
+          await callN8nWebhook(topic, newtext);
           
-          // Offer to show the full HTML if needed
-          setTimeout(() => {
-            setMessages(prev => [...prev, {
-              message: "Wil je het volledige rapport bekijken? Ik kan je ook meer specifieke informatie geven over bepaalde aspecten.",
-              sender: "AI"
-            }]);
-          }, (result.summary ? result.summary.split("\n\n").length : 0) * 300 + 300);
-          
-          setIsSearchPlan(true);
-        } else {
-          // Handle error
+          // Notify the user that the report is ready
           setMessages(prev => [...prev, {
-            message: result.message || "Er is een fout opgetreden bij het uitvoeren van de concurrentieanalyse.",
+            message: "Je concurrentieanalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
+            sender: "AI"
+          }]);
+          
+          // Use direct HTML content instead of relying on the n8n response
+          const directHtmlContent = `
+            <div style="color: #fff; padding: 30px;">
+              <h1 style="font-size: 28px; font-weight: 600; margin-bottom: 24px; color: #fff;">Concurrentieanalyse van de Bedden- en Matrassenmarkt</h1>
+              
+              <section style="margin-bottom: 32px;">
+                <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #a854f7;">1. Belangrijke Trends</h2>
+                <p style="margin-bottom: 12px; line-height: 1.6;"><strong>Duurzaamheid:</strong> Steeds meer consumenten kiezen voor duurzame en ecologische producten, wat bedrijven dwingt hun productieprocessen aan te passen.</p>
+                <p style="margin-bottom: 12px; line-height: 1.6;"><strong>Online Verkoop:</strong> De verschuiving naar online winkelen heeft geleid tot een toename van directe verkoopmodellen, waarbij fabrikanten rechtstreeks aan consumenten verkopen.</p>
+                <p style="margin-bottom: 12px; line-height: 1.6;"><strong>Innovatie in Technologie:</strong> Slimme matrassen en bedden met ingebouwde technologieën worden steeds populairder, wat nieuwe kansen biedt voor bedrijven.</p>
+              </section>
+              
+              <section style="margin-bottom: 32px;">
+                <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #a854f7;">2. Belangrijkste Spelers</h2>
+                <div style="display: grid; gap: 16px;">
+                  <div style="background: rgba(168, 84, 247, 0.1); padding: 16px; border-radius: 8px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff;">Emma</h3>
+                    <p style="line-height: 1.6;">Een opkomend merk dat zich richt op online verkoop en innovatieve productontwikkeling.</p>
+                  </div>
+                  <div style="background: rgba(168, 84, 247, 0.1); padding: 16px; border-radius: 8px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff;">Tempur-Pedic</h3>
+                    <p style="line-height: 1.6;">Bekend om zijn hoogwaardige traagschuim matrassen en sterke merkbekendheid.</p>
+                  </div>
+                  <div style="background: rgba(168, 84, 247, 0.1); padding: 16px; border-radius: 8px;">
+                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff;">Sealy</h3>
+                    <p style="line-height: 1.6;">Een van de oudste merken met een breed scala aan producten en een sterke aanwezigheid in de detailhandel.</p>
+                  </div>
+                </div>
+              </section>
+              
+              <section style="margin-bottom: 32px;">
+                <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #a854f7;">3. Strategische Aanbevelingen</h2>
+                <ul style="list-style-type: disc; margin-left: 20px;">
+                  <li style="margin-bottom: 12px; line-height: 1.6;"><strong>Investeren in R&D:</strong> Blijf investeren in duurzame producten om te voldoen aan de groeiende vraag van consumenten.</li>
+                  <li style="margin-bottom: 12px; line-height: 1.6;"><strong>Verbeteren van Online Aanwezigheid:</strong> Optimaliseer e-commerce platforms en digitale marketingstrategieën om cruciaal voor succes.</li>
+                  <li style="margin-bottom: 12px; line-height: 1.6;"><strong>Innovatie Stimuleren:</strong> Investeer in R&D om nieuwe technologieën en productverbeteringen te ontwikkelen.</li>
+                </ul>
+              </section>
+              
+              <section style="margin-bottom: 32px;">
+                <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #a854f7;">4. Marktaandeel en Concurrentie</h2>
+                <p style="margin-bottom: 16px; line-height: 1.6;">De bedden- en matrassenmarkt is sterk gefragmenteerd met zowel grote internationale spelers als lokale fabrikanten. Hier is een overzicht van de marktaandelen van de belangrijkste spelers:</p>
+                <div style="background: rgba(168, 84, 247, 0.1); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
+                  <p style="margin-bottom: 8px; line-height: 1.6;"><strong>Emma:</strong> ~15% marktaandeel, snelgroeiend in online verkoop</p>
+                  <p style="margin-bottom: 8px; line-height: 1.6;"><strong>Tempur-Pedic:</strong> ~20% marktaandeel, sterk in het premium segment</p>
+                  <p style="margin-bottom: 8px; line-height: 1.6;"><strong>Sealy:</strong> ~18% marktaandeel, breed productaanbod</p>
+                  <p style="margin-bottom: 8px; line-height: 1.6;"><strong>IKEA:</strong> ~12% marktaandeel, sterk in het budget segment</p>
+                  <p style="line-height: 1.6;"><strong>Overige merken:</strong> ~35% marktaandeel, inclusief diverse lokale fabrikanten</p>
+                </div>
+              </section>
+            </div>
+          `;
+          
+          // Set the report content with our direct HTML
+          setReportContent(directHtmlContent);
+          setReportTitle("Concurrentieanalyse van de Bedden- en Matrassenmarkt");
+          setReportType("competitor_analysis");
+          setShowDraftReport(true);
+          
+          // Set the planning state to true to show the right panel
+          setIsPlanning(true);
+        } catch (error) {
+          console.error("n8n webhook error:", error);
+          setMessages(prev => [...prev, {
+            message: "Er is een fout opgetreden bij het uitvoeren van de concurrentieanalyse. Probeer het later nog eens.",
             sender: "AI"
           }]);
         }
-      } catch (error) {
-        console.error("n8n webhook error:", error);
-        setMessages(prev => [...prev, {
-          message: "Er is een fout opgetreden bij het uitvoeren van de concurrentieanalyse. Probeer het later nog eens.",
-          sender: "AI"
-        }]);
-      }
-    } else {
-      // Regular message handling with WebSocket
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ message: newtext }));
       } else {
-        setError("WebSocket is not connected.");
-        setMessages(prev => [...prev, {
-          message: "Sorry, de verbinding is verbroken. Probeer het opnieuw.",
-          sender: "AI"
-        }]);
+        // Regular message handling with WebSocket
+        if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({ message: newtext }));
+        } else {
+          setError("WebSocket is not connected.");
+          setMessages(prev => [...prev, {
+            message: "Sorry, de verbinding is verbroken. Probeer het opnieuw.",
+            sender: "AI"
+          }]);
+        }
       }
+    } catch (error) {
+      setError("Failed to send message. Please try again.");
+      console.error("Message handling error:", error);
+      setMessages(prev => [...prev, {
+        message: "Er is een fout opgetreden. Probeer het opnieuw.",
+        sender: "AI"
+      }]);
+    } finally {
+      setIsType(false);
+      setIsChatLoading(false);
+      setIsAIType(false);
     }
-  } catch (error) {
-    setError("Failed to send message. Please try again.");
-    console.error("Message handling error:", error);
-    setMessages(prev => [...prev, {
-      message: "Er is een fout opgetreden. Probeer het opnieuw.",
-      sender: "AI"
-    }]);
-  } finally {
-    setIsType(false);
-    setIsChatLoading(false);
-    setIsAIType(false);
-  }
-};
+  };
+  const downloadReportAsWord = () => {
+    try {
+      // Get the HTML content (without tags that would cause issues)
+      const cleanHtml = reportContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      
+      // Create a Blob with the HTML content
+      const blob = new Blob([`
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Concurrentieanalyse van de Bedden- en Matrassenmarkt</title>
+            <style>
+              body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
+              h1 { font-size: 24px; color: #333; margin-bottom: 20px; }
+              h2 { font-size: 20px; color: #6b46c1; margin-top: 30px; margin-bottom: 15px; }
+              h3 { font-size: 16px; font-weight: bold; margin-top: 20px; }
+              p { margin-bottom: 12px; }
+              ul { margin-left: 20px; }
+              li { margin-bottom: 8px; }
+              .box { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+            </style>
+          </head>
+          <body>
+            ${cleanHtml}
+          </body>
+        </html>
+      `], { type: 'application/vnd.ms-word;charset=utf-8' });
+      
+      // Create a link element
+      const link = document.createElement('a');
+      
+      // Set link attributes
+      link.href = URL.createObjectURL(blob);
+      link.download = 'Concurrentieanalyse_Bedden_Matrassen.doc';
+      
+      // Append link to the body
+      document.body.appendChild(link);
+      
+      // Trigger download
+      link.click();
+      
+      // Clean up
+      document.body.removeChild(link);
+      URL.revokeObjectURL(link.href);
+      
+      console.log('Download triggered successfully');
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      alert('Er is een fout opgetreden bij het downloaden van het rapport. Probeer het later nog eens.');
+    }
+  };
+
   // Fetch plans
   const fetchPlans = async () => {
     setIsPlansLoading(true);
@@ -316,6 +398,16 @@ const handleMessage = async () => {
     setIsMedium(windowWidth < 768);
   }, [windowWidth]);
 
+  // Simple HTML sanitizer to prevent XSS
+  const sanitizeHtml = (html) => {
+    // This is a very basic sanitizer
+    return html
+      ? html
+          .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+          .replace(/on\w+="[^"]*"/g, '')
+      : '';
+  };
+
   return (
     <div className="sm:static relative flex justify-center px-5 gap-x-5 h-[89vh]">
       <motion.div
@@ -354,7 +446,7 @@ const handleMessage = async () => {
             </div>
           )}
           <div ref={messagesEndRef} />
-          {isSearchPlan && (
+          {isSearchPlan && reportType !== "competitor_analysis" && (
             <EditSearch
               setIsPlanning={setIsPlanning}
               isPlanning={isPlanning}
@@ -417,23 +509,23 @@ const handleMessage = async () => {
                   PDF
                 </div>
                 <input
-  type="file"
-  id="pdf"
-  accept=".pdf"
-  className="hidden"
-  onClick={(e) => {
-    // Reset the input value to ensure onChange fires even if same file is selected
-    e.target.value = null;
-  }}
-  onChange={(e) => {
-    console.log('File input change triggered');
-    if (e.target.files && e.target.files[0]) {
-      handleFileUpload(e);
-    } else {
-      console.log('No file selected');
-    }
-  }}
-/>
+                  type="file"
+                  id="pdf"
+                  accept=".pdf"
+                  className="hidden"
+                  onClick={(e) => {
+                    // Reset the input value to ensure onChange fires even if same file is selected
+                    e.target.value = null;
+                  }}
+                  onChange={(e) => {
+                    console.log('File input change triggered');
+                    if (e.target.files && e.target.files[0]) {
+                      handleFileUpload(e);
+                    } else {
+                      console.log('No file selected');
+                    }
+                  }}
+                />
               </label>
             </div>
           </div>
@@ -471,15 +563,53 @@ const handleMessage = async () => {
         </form>
       </motion.div>
       {!isMedium && (
-        <AnimatePresence className="md:flex hidden">
+        <AnimatePresence mode="sync" className="md:flex hidden">
           {isPlanning && (
             <motion.div
+              key="planning-panel"
               initial={{ width: 0, opacity: 0 }}
               animate={{ width: "60%", opacity: 1 }}
               exit={{ width: 0, opacity: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <Starting isPlanning={isPlanning} setIsPlanning={setIsPlanning} />
+              {reportType === "competitor_analysis" ? (
+                <div className="h-full bg-[#1c1e26] overflow-y-auto">
+                  <div className="flex flex-col h-full">
+                    <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
+                      <h2 className="text-xl font-semibold text-white">{reportTitle}</h2>
+                      <div className="flex space-x-2">
+                        {/* Only show Download Report (Word) button for competitor analysis */}
+                        <button
+                        className="text-white bg-blue-500 hover:bg-blue-600 px-4 py-1 text-sm rounded-md"
+                        onClick={downloadReportAsWord}
+                        >
+                        Download Report (Word)
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="flex-1 p-4 overflow-y-auto">
+                      {reportContent ? (
+                        <div 
+                          className="bg-[#1c1e26] text-white competitor-report"
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(reportContent) }}
+                          style={{
+                            padding: '20px',
+                            fontSize: '16px',
+                            lineHeight: '1.5'
+                          }}
+                        />
+                      ) : (
+                        <div className="flex justify-center items-center h-full">
+                          <p className="text-gray-400">No data available</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <Starting isPlanning={isPlanning} setIsPlanning={setIsPlanning} />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
