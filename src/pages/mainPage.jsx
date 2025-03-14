@@ -167,77 +167,46 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             sender: "AI"
           }]);
           
-          // Call the webhook (we'll still call it but won't rely on its content)
+          // Call the webhook and process the response
           const topic = "competitor_analysis";
-          await callN8nWebhook(topic, newtext);
-          
-          // Notify the user that the report is ready
-          setMessages(prev => [...prev, {
-            message: "Je concurrentieanalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
-            sender: "AI"
-          }]);
-          
-          // Use direct HTML content instead of relying on the n8n response
-          const directHtmlContent = `
-            <div style="color: #fff; padding: 30px;">
-              <h1 style="font-size: 28px; font-weight: 600; margin-bottom: 24px; color: #fff;">Concurrentieanalyse van de Bedden- en Matrassenmarkt</h1>
-              
-              <section style="margin-bottom: 32px;">
-                <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #a854f7;">1. Belangrijke Trends</h2>
-                <p style="margin-bottom: 12px; line-height: 1.6;"><strong>Duurzaamheid:</strong> Steeds meer consumenten kiezen voor duurzame en ecologische producten, wat bedrijven dwingt hun productieprocessen aan te passen.</p>
-                <p style="margin-bottom: 12px; line-height: 1.6;"><strong>Online Verkoop:</strong> De verschuiving naar online winkelen heeft geleid tot een toename van directe verkoopmodellen, waarbij fabrikanten rechtstreeks aan consumenten verkopen.</p>
-                <p style="margin-bottom: 12px; line-height: 1.6;"><strong>Innovatie in Technologie:</strong> Slimme matrassen en bedden met ingebouwde technologieën worden steeds populairder, wat nieuwe kansen biedt voor bedrijven.</p>
-              </section>
-              
-              <section style="margin-bottom: 32px;">
-                <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #a854f7;">2. Belangrijkste Spelers</h2>
-                <div style="display: grid; gap: 16px;">
-                  <div style="background: rgba(168, 84, 247, 0.1); padding: 16px; border-radius: 8px;">
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff;">Emma</h3>
-                    <p style="line-height: 1.6;">Een opkomend merk dat zich richt op online verkoop en innovatieve productontwikkeling.</p>
-                  </div>
-                  <div style="background: rgba(168, 84, 247, 0.1); padding: 16px; border-radius: 8px;">
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff;">Tempur-Pedic</h3>
-                    <p style="line-height: 1.6;">Bekend om zijn hoogwaardige traagschuim matrassen en sterke merkbekendheid.</p>
-                  </div>
-                  <div style="background: rgba(168, 84, 247, 0.1); padding: 16px; border-radius: 8px;">
-                    <h3 style="font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #fff;">Sealy</h3>
-                    <p style="line-height: 1.6;">Een van de oudste merken met een breed scala aan producten en een sterke aanwezigheid in de detailhandel.</p>
-                  </div>
-                </div>
-              </section>
-              
-              <section style="margin-bottom: 32px;">
-                <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #a854f7;">3. Strategische Aanbevelingen</h2>
-                <ul style="list-style-type: disc; margin-left: 20px;">
-                  <li style="margin-bottom: 12px; line-height: 1.6;"><strong>Investeren in R&D:</strong> Blijf investeren in duurzame producten om te voldoen aan de groeiende vraag van consumenten.</li>
-                  <li style="margin-bottom: 12px; line-height: 1.6;"><strong>Verbeteren van Online Aanwezigheid:</strong> Optimaliseer e-commerce platforms en digitale marketingstrategieën om cruciaal voor succes.</li>
-                  <li style="margin-bottom: 12px; line-height: 1.6;"><strong>Innovatie Stimuleren:</strong> Investeer in R&D om nieuwe technologieën en productverbeteringen te ontwikkelen.</li>
-                </ul>
-              </section>
-              
-              <section style="margin-bottom: 32px;">
-                <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 16px; color: #a854f7;">4. Marktaandeel en Concurrentie</h2>
-                <p style="margin-bottom: 16px; line-height: 1.6;">De bedden- en matrassenmarkt is sterk gefragmenteerd met zowel grote internationale spelers als lokale fabrikanten. Hier is een overzicht van de marktaandelen van de belangrijkste spelers:</p>
-                <div style="background: rgba(168, 84, 247, 0.1); padding: 16px; border-radius: 8px; margin-bottom: 16px;">
-                  <p style="margin-bottom: 8px; line-height: 1.6;"><strong>Emma:</strong> ~15% marktaandeel, snelgroeiend in online verkoop</p>
-                  <p style="margin-bottom: 8px; line-height: 1.6;"><strong>Tempur-Pedic:</strong> ~20% marktaandeel, sterk in het premium segment</p>
-                  <p style="margin-bottom: 8px; line-height: 1.6;"><strong>Sealy:</strong> ~18% marktaandeel, breed productaanbod</p>
-                  <p style="margin-bottom: 8px; line-height: 1.6;"><strong>IKEA:</strong> ~12% marktaandeel, sterk in het budget segment</p>
-                  <p style="line-height: 1.6;"><strong>Overige merken:</strong> ~35% marktaandeel, inclusief diverse lokale fabrikanten</p>
-                </div>
-              </section>
-            </div>
-          `;
-          
-          // Set the report content with our direct HTML
-          setReportContent(directHtmlContent);
-          setReportTitle("Concurrentieanalyse van de Bedden- en Matrassenmarkt");
-          setReportType("competitor_analysis");
-          setShowDraftReport(true);
-          
-          // Set the planning state to true to show the right panel
-          setIsPlanning(true);
+          const webhookResponse = await callN8nWebhook(topic, newtext);
+          console.log("Webhook response received:", webhookResponse);
+
+          if (webhookResponse && webhookResponse.html) {
+            // Use the HTML content from the webhook response
+            setReportContent(webhookResponse.html);
+            setReportTitle(webhookResponse.title || "Concurrentieanalyse van de Bedden- en Matrassenmarkt");
+            setReportType("competitor_analysis");
+            setShowDraftReport(true);
+            
+            // Set the planning state to true to show the right panel
+            setIsPlanning(true);
+            
+            // Notify the user that the report is ready
+            setMessages(prev => [...prev, {
+              message: "Je concurrentieanalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
+              sender: "AI"
+            }]);
+          } else {
+            console.error("Invalid webhook response format:", webhookResponse);
+            // Fallback content in case the webhook doesn't return the expected format
+            setReportContent(`
+              <div style="color: #fff; padding: 20px;">
+                <h1 style="font-size: 24px; margin-bottom: 20px;">Concurrentieanalyse van de Bedden- en Matrassenmarkt</h1>
+                <p>Er kon geen gedetailleerd rapport worden gegenereerd. Probeer het later opnieuw.</p>
+              </div>
+            `);
+            setReportTitle("Concurrentieanalyse van de Bedden- en Matrassenmarkt");
+            setReportType("competitor_analysis");
+            setShowDraftReport(true);
+            setIsPlanning(true);
+            
+            // Notify the user about the issue
+            setMessages(prev => [...prev, {
+              message: "Er is een probleem opgetreden bij het genereren van de analyse, maar ik heb een eenvoudig rapport gemaakt dat je aan de rechterkant kunt bekijken.",
+              sender: "AI"
+            }]);
+          }
         } catch (error) {
           console.error("n8n webhook error:", error);
           setMessages(prev => [...prev, {
@@ -270,6 +239,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
       setIsAIType(false);
     }
   };
+  
   const downloadReportAsWord = () => {
     try {
       // Get the HTML content (without tags that would cause issues)
@@ -290,6 +260,10 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
               ul { margin-left: 20px; }
               li { margin-bottom: 8px; }
               .box { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
+              table { border-collapse: collapse; width: 100%; }
+              th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+              th { background-color: #f2f2f2; }
+              tr:nth-child(even) { background-color: #f9f9f9; }
             </style>
           </head>
           <body>
