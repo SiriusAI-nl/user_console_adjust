@@ -3,7 +3,7 @@
  * This service extracts HTML content from code blocks and adapts it for dark theme
  */
 export const callN8nWebhook = async (topic, query) => {
-  const url = 'https://n8n.gcp.siriusai.nl/webhook/pblog';
+  const url = 'https://n8n.gcp.siriusai.nl/webhook/marketing';
   
   try {
     console.log(`Calling n8n webhook with topic: ${topic}, query: ${query}`);

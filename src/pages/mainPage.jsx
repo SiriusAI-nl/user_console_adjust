@@ -18,6 +18,38 @@ import {
 // Import the callN8nWebhook function
 import { callN8nWebhook } from "@/hooks/webhookService";
 
+function ensureCompleteHtml(html) {
+  if (!html) return html;
+  
+  // Check if HTML might be truncated
+  const isCompleteHtml = 
+    html.includes('</div>') && 
+    (html.match(/<div/g) || []).length <= (html.match(/<\/div>/g) || []).length;
+  
+  if (!isCompleteHtml) {
+    console.warn("Potentially truncated or malformed HTML detected in report");
+    
+    // Fix common HTML issues
+    let fixedContent = html;
+    
+    // Close any unclosed div tags
+    const openDivs = (fixedContent.match(/<div/g) || []).length;
+    const closeDivs = (fixedContent.match(/<\/div>/g) || []).length;
+    
+    if (openDivs > closeDivs) {
+      // Add missing closing tags
+      for (let i = 0; i < (openDivs - closeDivs); i++) {
+        fixedContent += '</div>';
+      }
+      console.log("Added missing closing div tags");
+    }
+    
+    return fixedContent;
+  }
+  
+  return html;
+}
+
 const MainPage = ({ setMenuOpen, setIsBtn }) => {
   // State declarations
   const [isPlanning, setIsPlanning] = useState(false);
@@ -52,6 +84,24 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     console.log('PDF API URL:', import.meta.env.VITE_PDF_API_URL);
     console.log('Main API URL:', import.meta.env.VITE_API_URL);
   }, []);
+
+  useEffect(() => {
+    if (reportContent) {
+      const openDivs = (reportContent.match(/<div/g) || []).length;
+      const closeDivs = (reportContent.match(/<\/div>/g) || []).length;
+  
+      if (openDivs > closeDivs) {
+        let fixedContent = reportContent;
+        for (let i = 0; i < (openDivs - closeDivs); i++) {
+          fixedContent += '</div>';
+        }
+        setReportContent(fixedContent);
+        console.log("Fixed malformed HTML");
+      }
+    }
+  }, [reportContent]);
+  
+
 
   // File upload handler
   // Update the handleFileUpload function
@@ -136,7 +186,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
   // Updated Message handler with n8n integration
   const handleMessage = async () => {
     if (isType || !newtext.trim()) return;
-
+  
     // Add message to UI immediately
     setMessages((prevMessages) => [
       ...prevMessages,
@@ -146,73 +196,308 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     setNewtext("");
     setIsChatLoading(true);
     setIsAIType(true);
-
+  
     try {
       // Check if this is a competitor analysis request for beds/mattresses
       const lowerText = newtext.toLowerCase();
       
       // Keywords for competitor analysis on beds and mattresses
       const competitorKeywords = ['competitor', 'concurrentie', 'concurrenten', 'analyse', 'analysis'];
-      const productKeywords = ['bed', 'bedden', 'matras', 'matrassen', 'mattress'];
+      const productKeywords = [
+        'bed', 'bedden', 'matras', 'matrassen', 'mattress',
+        'slaap', 'slapen', 'slaapkamer'
+      ];
+  
+      const marketingKeywords = [
+        'marketing', 'branding', 'promotie', 'promotion', 'campagne', 
+        'campaign', 'strategie', 'rapport'
+      ];
+    
       
       const hasCompetitorKeyword = competitorKeywords.some(keyword => lowerText.includes(keyword));
       const hasProductKeyword = productKeywords.some(keyword => lowerText.includes(keyword));
+      const hasMarketingKeyword = marketingKeywords.some(keyword => lowerText.includes(keyword));
       
-      // If it's a competitor analysis request for beds/mattresses, use n8n webhook
-      if (hasCompetitorKeyword && hasProductKeyword) {
-        try {
-          // Add a message indicating we're using the n8n workflow
-          setMessages(prev => [...prev, {
-            message: "Ik start een concurrentieanalyse voor bedden en matrassen...",
-            sender: "AI"
-          }]);
-          
-          // Call the webhook and process the response
-          const topic = "competitor_analysis";
-          const webhookResponse = await callN8nWebhook(topic, newtext);
-          console.log("Webhook response received:", webhookResponse);
-
-          if (webhookResponse && webhookResponse.html) {
-            // Use the HTML content from the webhook response
-            setReportContent(webhookResponse.html);
-            setReportTitle(webhookResponse.title || "Concurrentieanalyse van de Bedden- en Matrassenmarkt");
-            setReportType("competitor_analysis");
-            setShowDraftReport(true);
+      // Use a simple check - either it contains "marketing" explicitly or we force it to use a topic
+      const isExplicitMarketingRequest = lowerText.includes('marketing');
+      const shouldUseWebhook = (hasCompetitorKeyword && hasProductKeyword) || hasMarketingKeyword;
+      
+      if (shouldUseWebhook) {
+        console.log("Request analysis:", {
+          text: newtext,
+          lowerText,
+          hasCompetitorKeyword,
+          hasProductKeyword,
+          hasMarketingKeyword,
+          matchedMarketingKeywords: marketingKeywords.filter(kw => lowerText.includes(kw)),
+          matchedProductKeywords: productKeywords.filter(kw => lowerText.includes(kw))
+        });
+        
+        // If it's a marketing analysis request, use a direct API call instead of callN8nWebhook
+        if (isExplicitMarketingRequest) {
+          const analysisMessage = "Ik start een marketinganalyse...";
+          const analysisReadyMessage = "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.";
+          const defaultTitle = "Marketinganalyse Rapport";
+            const reportTypeValue = "marketing_analysis";
+          try {
             
-            // Set the planning state to true to show the right panel
-            setIsPlanning(true);
             
-            // Notify the user that the report is ready
+            // Log that we're processing a marketing analysis with direct API call
+            console.log("Processing MARKETING analysis request with direct API call");
+            
+            // Add a message indicating we're starting the analysis
             setMessages(prev => [...prev, {
-              message: "Je concurrentieanalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
+              message: analysisMessage,
               sender: "AI"
             }]);
-          } else {
-            console.error("Invalid webhook response format:", webhookResponse);
-            // Fallback content in case the webhook doesn't return the expected format
+            // Show a loading report initially
             setReportContent(`
-              <div style="color: #fff; padding: 20px;">
-                <h1 style="font-size: 24px; margin-bottom: 20px;">Concurrentieanalyse van de Bedden- en Matrassenmarkt</h1>
-                <p>Er kon geen gedetailleerd rapport worden gegenereerd. Probeer het later opnieuw.</p>
-              </div>
+            <div style="color: #fff; padding: 20px;">
+            <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+            <p>De marketinganalyse wordt gegenereerd...</p>
+            <div style="display: flex; justify-content: center; margin: 30px 0;">
+            <div style="width: 50px; height: 50px; border: 5px solid #333; border-radius: 50%; border-top-color: #60a5fa; animation: spin 1s linear infinite;"></div>
+            </div>
+            <style>
+            @keyframes spin { to { transform: rotate(360deg); } }
+            </style>
+            </div>
             `);
-            setReportTitle("Concurrentieanalyse van de Bedden- en Matrassenmarkt");
-            setReportType("competitor_analysis");
+            setReportTitle(defaultTitle);
+            setReportType(reportTypeValue);
             setShowDraftReport(true);
             setIsPlanning(true);
             
-            // Notify the user about the issue
+            // Direct API call to the marketing webhook
+            const response = await axios({
+              method: 'POST',
+              url: 'https://n8n.gcp.siriusai.nl/webhook/marketing',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              data: {
+                query: {
+                  topic: "marketing_analysis",
+                  content: newtext
+                }
+              },
+              timeout: 120000 // 2 minutes timeout
+            });
+            
+            console.log("Marketing API response received");
+            console.log("Response status:", response.status);
+            console.log("Response type:", typeof response.data);
+            
+            // Better content extraction logic
+            console.log("Marketing API response received");
+console.log("Response status:", response.status);
+console.log("Response type:", typeof response.data);
+
+// Better content extraction logic
+const responseData = response.data;
+let htmlContent = "";
+
+if (responseData && responseData.json && responseData.json.text) {
+  // Vervang geëscapete \n met echte newlines
+  htmlContent = responseData.json.text.replace(/\\n/g, '').trim();
+} else {
+  console.warn("Geen content gevonden in response");
+}
+
+
+// Case 1: Direct HTML string
+if (typeof responseData === 'string') {
+  // First check if it's HTML
+  if (responseData.trim().startsWith('<')) {
+    htmlContent = responseData;
+    console.log("Using direct HTML string");
+  } 
+  // Then check if it's Markdown code block with HTML
+  else if (responseData.includes('```html')) {
+    const startMarker = '```html';
+    const endMarker = '```';
+    
+    const startIndex = responseData.indexOf(startMarker) + startMarker.length;
+    const endIndex = responseData.lastIndexOf(endMarker);
+    
+    if (startIndex !== -1 && endIndex !== -1) {
+      htmlContent = responseData.substring(startIndex, endIndex).trim();
+      console.log("Extracted HTML from markdown code block");
+    }
+  }
+  // If it's plain text, convert it to HTML
+  else {
+    // If it's plain text, convert it to HTML directly
+    htmlContent = `
+      <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+        <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+        <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
+          ${responseData.replace(/\n/g, '<br>')}
+        </div>
+      </div>
+    `;
+    console.log("Converted plain text to HTML");
+  }
+}
+// Case 2: JSON object with HTML field
+else if (responseData && typeof responseData === 'object') {
+  console.log("JSON response keys:", Object.keys(responseData));
+  
+  // Try multiple possible field names
+  const possibleFields = ['html', 'text', 'output', 'content', 'result', 'data', 'message', 'response'];
+  for (const field of possibleFields) {
+    if (responseData[field] && typeof responseData[field] === 'string') {
+      htmlContent = responseData[field];
+      console.log(`Extracted content from .${field} property`);
+      break;
+    }
+  }
+  
+  // If we still don't have content but have a nested structure
+  if (!htmlContent && responseData.data && typeof responseData.data === 'object') {
+    console.log("Nested data keys:", Object.keys(responseData.data));
+    for (const field of possibleFields) {
+      if (responseData.data[field] && typeof responseData.data[field] === 'string') {
+        htmlContent = responseData.data[field];
+        console.log(`Extracted content from .data.${field} property`);
+        break;
+      }
+    }
+  }
+}
+
+// Log the extracted content
+console.log("Extracted HTML content length:", htmlContent?.length || 0);
+if (htmlContent?.length > 0) {
+  console.log("HTML content preview:", htmlContent.substring(0, 200));
+}
+
+// Create a basic HTML structure if the content is plain text and doesn't already have HTML tags
+if (htmlContent && !htmlContent.includes('<html') && !htmlContent.includes('<div') && !htmlContent.includes('<p')) {
+  const formattedHtml = `
+    <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+      <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+      <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
+        ${htmlContent.replace(/\n/g, '<br>')}
+      </div>
+    </div>
+  `;
+  htmlContent = formattedHtml;
+  console.log("Applied HTML formatting to content");
+}
+            
+            setReportContent(ensureCompleteHtml(htmlContent));
+            setReportTitle(defaultTitle);
+            setReportType(reportTypeValue);
+            setShowDraftReport(true);
+            setIsPlanning(true);
+            
             setMessages(prev => [...prev, {
-              message: "Er is een probleem opgetreden bij het genereren van de analyse, maar ik heb een eenvoudig rapport gemaakt dat je aan de rechterkant kunt bekijken.",
+              message: htmlContent && htmlContent.length > 50 ? 
+                analysisReadyMessage : 
+                "Er is een beperkt rapport gegenereerd. Je kunt het bekijken aan de rechterkant, maar probeer het later nog eens voor een vollediger resultaat.",
+              sender: "AI"
+            }]);
+            
+          } catch (error) {
+            console.error("Marketing API error:", error);
+            // Create more informative error report
+            const errorReport = `
+              <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+                <h1 style="font-size: 24px; margin-bottom: 20px;">Marketinganalyse Rapport</h1>
+                <div style="background: rgba(255, 0, 0, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ff0000; margin-bottom: 20px;">
+                  <h2 style="margin-top: 0; color: #ff5555;">Er is een fout opgetreden</h2>
+                  <p><strong>Fouttype:</strong> ${error.name || 'Unknown Error'}</p>
+                  <p><strong>Foutmelding:</strong> ${error.message || 'Geen details beschikbaar'}</p>
+                  <p><strong>Status:</strong> ${error.response?.status || 'N/A'}</p>
+                </div>
+                <div style="margin-top: 20px;">
+                  <h3>Suggesties om het probleem op te lossen:</h3>
+                  <ul style="list-style-type: disc; margin-left: 20px; line-height: 1.5;">
+                    <li>Controleer je internetverbinding</li>
+                    <li>Vernieuw de pagina en probeer het opnieuw</li>
+                    <li>Als het probleem aanhoudt, probeer het later nog eens</li>
+                  </ul>
+                </div>
+              </div>
+            `;
+            
+            setReportContent(errorReport);
+            setReportTitle(defaultTitle);
+            setReportType(reportTypeValue);
+            setShowDraftReport(true);
+            setIsPlanning(true);
+            
+            setMessages(prev => [...prev, {
+              message: "Er is een fout opgetreden bij het uitvoeren van de marketinganalyse. Je kunt de details bekijken in het rapport aan de rechterkant.",
               sender: "AI"
             }]);
           }
-        } catch (error) {
-          console.error("n8n webhook error:", error);
-          setMessages(prev => [...prev, {
-            message: "Er is een fout opgetreden bij het uitvoeren van de concurrentieanalyse. Probeer het later nog eens.",
-            sender: "AI"
-          }]);
+        } 
+          
+         else {
+          // For competitor analysis, use the existing webhook function
+          try {
+            const analysisMessage = "Ik start een concurrentieanalyse voor bedden en matrassen...";
+            const analysisReadyMessage = "Je concurrentieanalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.";
+            const defaultTitle = "Concurrentieanalyse van de Bedden- en Matrassenmarkt";
+            const reportTypeValue = "competitor_analysis";
+            
+            // Log that we're processing a competitor analysis
+            console.log("Processing COMPETITOR analysis request");
+            
+            // Add a message indicating we're using the n8n workflow
+            setMessages(prev => [...prev, {
+              message: analysisMessage,
+              sender: "AI"
+            }]);
+            
+            // Call the webhook and process the response
+            const webhookResponse = await callN8nWebhook("competitor_analysis", newtext);
+            console.log("Webhook response received:", webhookResponse);
+              
+            if (webhookResponse && webhookResponse.html) {
+              // Use the HTML content from the webhook response
+              setReportContent(webhookResponse.html);
+              setReportTitle(webhookResponse.title || defaultTitle);
+              setReportType(reportTypeValue);
+              setShowDraftReport(true);
+              
+              // Set the planning state to true to show the right panel
+              setIsPlanning(true);
+              
+              // Notify the user that the report is ready
+              setMessages(prev => [...prev, {
+                message: analysisReadyMessage,
+                sender: "AI"
+              }]);
+            } else {
+              console.error("Invalid webhook response format:", webhookResponse);
+              // Fallback content in case the webhook doesn't return the expected format
+              setReportContent(`
+                <div style="color: #fff; padding: 20px;">
+                  <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+                  <p>Er kon geen gedetailleerd rapport worden gegenereerd. Probeer het later opnieuw.</p>
+                </div>
+              `);
+              setReportTitle(defaultTitle);
+              setReportType(reportTypeValue);
+              setShowDraftReport(true);
+              setIsPlanning(true);
+              
+              // Notify the user about the issue
+              setMessages(prev => [...prev, {
+                message: "Er is een probleem opgetreden bij het genereren van de analyse, maar ik heb een eenvoudig rapport gemaakt dat je aan de rechterkant kunt bekijken.",
+                sender: "AI"
+              }]);
+            }
+          } catch (error) {
+            console.error("n8n webhook error:", error);
+            setMessages(prev => [...prev, {
+              message: "Er is een fout opgetreden bij het uitvoeren van de analyse. Probeer het later nog eens.",
+              sender: "AI"
+            }]);
+          }
         }
       } else {
         // Regular message handling with WebSocket
@@ -239,7 +524,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
       setIsAIType(false);
     }
   };
-  
+  //End of handleMessage function
   const downloadReportAsWord = () => {
     try {
       // Get the HTML content (without tags that would cause issues)
@@ -537,57 +822,81 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
         </form>
       </motion.div>
       {!isMedium && (
-        <AnimatePresence mode="sync" className="md:flex hidden">
-          {isPlanning && (
-            <motion.div
-              key="planning-panel"
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: "60%", opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              {reportType === "competitor_analysis" ? (
-                <div className="h-full bg-[#1c1e26] overflow-y-auto">
-                  <div className="flex flex-col h-full">
-                    <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
-                      <h2 className="text-xl font-semibold text-white">{reportTitle}</h2>
-                      <div className="flex space-x-2">
-                        {/* Only show Download Report (Word) button for competitor analysis */}
-                        <button
-                        className="text-white bg-blue-500 hover:bg-blue-600 px-4 py-1 text-sm rounded-md"
-                        onClick={downloadReportAsWord}
-                        >
-                        Download Report (Word)
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="flex-1 p-4 overflow-y-auto">
-                      {reportContent ? (
-                        <div 
-                          className="bg-[#1c1e26] text-white competitor-report"
-                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(reportContent) }}
-                          style={{
-                            padding: '20px',
-                            fontSize: '16px',
-                            lineHeight: '1.5'
-                          }}
-                        />
-                      ) : (
-                        <div className="flex justify-center items-center h-full">
-                          <p className="text-gray-400">No data available</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+  <AnimatePresence mode="sync" className="md:flex hidden">
+    {isPlanning && (
+      <motion.div
+        key="planning-panel"
+        initial={{ width: 0, opacity: 0 }}
+        animate={{ width: "60%", opacity: 1 }}
+        exit={{ width: 0, opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {reportType === "competitor_analysis" || reportType === "marketing_analysis" ? (
+          <div className="h-full bg-[#1c1e26] overflow-y-auto">
+            <div className="flex flex-col h-full">
+              <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
+                <h2 className="text-xl font-semibold text-white">{reportTitle}</h2>
+                <div className="flex space-x-2">
+                  <button
+                    className="text-white bg-blue-500 hover:bg-blue-600 px-4 py-1 text-sm rounded-md"
+                    onClick={downloadReportAsWord}
+                  >
+                    Download Report (Word)
+                  </button>
                 </div>
-              ) : (
-                <Starting isPlanning={isPlanning} setIsPlanning={setIsPlanning} />
-              )}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      )}
+              </div>
+              
+              <div className="flex-1 p-4 overflow-y-auto">
+  {reportContent ? (
+    <div 
+      className="bg-[#1c1e26] text-white competitor-report"
+      style={{
+        padding: '20px',
+        fontSize: '16px',
+        lineHeight: '1.5',
+        color: '#fff',
+        fontFamily: 'Arial, sans-serif',
+        maxWidth: '100%',
+        overflowWrap: 'break-word',
+        wordBreak: 'break-word'
+      }}
+    >
+      {/* Use a try-catch wrapper to prevent render errors */}
+      {(() => {
+        try {
+          return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(reportContent) }} />;
+        } catch (error) {
+          console.error("Error rendering HTML content:", error);
+          return (
+            <div>
+              <h2 className="text-xl text-red-400 mb-4">Error displaying report content</h2>
+              <pre className="whitespace-pre-wrap text-sm bg-gray-800 p-4 rounded">
+                {reportContent}
+              </pre>
+            </div>
+          );
+        }
+      })()}
+    </div>
+  ) : (
+                  <div className="flex justify-center items-center h-full">
+                  <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+                  <p className="text-gray-400">Rapport wordt geladen...</p>
+                  </div>
+                  </div>
+                   )}
+              
+              </div>
+            </div>
+          </div>
+        ) : (
+          <Starting isPlanning={isPlanning} setIsPlanning={setIsPlanning} />
+        )}
+      </motion.div>
+    )}
+  </AnimatePresence>
+)}
     </div>
   );
 };
