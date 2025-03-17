@@ -277,7 +277,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             // Direct API call to the marketing webhook
             const response = await axios({
               method: 'POST',
-              url: 'https://n8n.gcp.siriusai.nl/webhook/master2',
+              url: 'https://n8n.gcp.siriusai.nl/webhook/master',
               headers: {
                 'Content-Type': 'application/json',
               },
