@@ -271,7 +271,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             // Direct API call to the marketing webhook
             const response = await axios({
               method: 'POST',
-              url: 'https://n8n.gcp.siriusai.nl/webhook/marketing',
+              url: 'https://n8n.gcp.siriusai.nl/webhook/master',
               headers: {
                 'Content-Type': 'application/json',
               },
@@ -375,7 +375,7 @@ if (htmlContent?.length > 0) {
 // Create a basic HTML structure if the content is plain text and doesn't already have HTML tags
 if (htmlContent && !htmlContent.includes('<html') && !htmlContent.includes('<div') && !htmlContent.includes('<p')) {
   const formattedHtml = `
-    <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+    <div style="color: #333; padding: 20px; font-family: Arial, sans-serif;">
       <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
       <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
         ${htmlContent.replace(/\n/g, '<br>')}
