@@ -89,14 +89,20 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
     if (reportContent) {
       const openDivs = (reportContent.match(/<div/g) || []).length;
       const closeDivs = (reportContent.match(/<\/div>/g) || []).length;
-  
+    
       if (openDivs > closeDivs) {
-        let fixedContent = reportContent;
-        for (let i = 0; i < (openDivs - closeDivs); i++) {
-          fixedContent += '</div>';
-        }
-        setReportContent(fixedContent);
-        console.log("Fixed malformed HTML");
+        // Use a ref to track if we've already fixed this content
+        const fixedContent = reportContent + Array(openDivs - closeDivs).fill('</div>').join('');
+        
+        // Use functional update to prevent dependency loops
+        setReportContent(prev => {
+          // Only update if the content has changed
+          if (prev !== fixedContent) {
+            console.log("Fixed malformed HTML");
+            return fixedContent;
+          }
+          return prev;
+        });
       }
     }
   }, [reportContent]);
@@ -302,6 +308,16 @@ if (responseData && responseData.json && responseData.json.text) {
   htmlContent = responseData.json.text.replace(/\\n/g, '').trim();
 } else {
   console.warn("Geen content gevonden in response");
+  // Provide a fallback content to prevent rendering issues
+  htmlContent = `
+    <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+      <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+      <div style="background-color: rgba(255, 0, 0, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ff5555; margin-bottom: 20px;">
+        <h2 style="color: #ff5555; margin-top: 0;">Geen content gevonden</h2>
+        <p>Er kon geen content worden opgehaald uit de API-respons. Probeer het later opnieuw.</p>
+      </div>
+    </div>
+  `;
 }
 
 
