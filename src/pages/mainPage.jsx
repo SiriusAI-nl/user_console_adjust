@@ -226,8 +226,8 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
       
       // Use a simple check - either it contains "marketing" explicitly or we force it to use a topic
       const isExplicitMarketingRequest = lowerText.includes('marketing');
-      const shouldUseWebhook = (hasCompetitorKeyword && hasProductKeyword) || hasMarketingKeyword;
-      
+      //const shouldUseWebhook = (hasCompetitorKeyword && hasProductKeyword) || hasMarketingKeyword;
+      const shouldUseWebhook = true;
       if (shouldUseWebhook) {
         console.log("Request analysis:", {
           text: newtext,
@@ -287,63 +287,88 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
                   content: newtext
                 }
               },
-              timeout: 120000 // 2 minutes timeout
+              timeout: 500000 // 2 minutes timeout
             });
             
             console.log("Marketing API response received");
             console.log("Response status:", response.status);
             console.log("Response type:", typeof response.data);
+            console.log("RAW RESPONSE:", response);
             
             // Better content extraction logic
             console.log("Marketing API response received");
 console.log("Response status:", response.status);
 console.log("Response type:", typeof response.data);
+// Replace the problematic content extraction code with this fixed version
+// Starting around line 303-305
 
-// Better content extraction logic
+console.log("Marketing API response received");
+console.log("Response status:", response.status);
+console.log("Response type:", typeof response.data);
+
+
+console.log("Marketing API response received");
+console.log("Response status:", response.status);
+
+// Log the complete raw response for debugging
+console.log("RAW RESPONSE:", response);
+
+// Define responseData and initialize with fallback content
 const responseData = response.data;
-let htmlContent = "";
-
-if (responseData && responseData.json && responseData.json.text) {
-  // Vervang geëscapete \n met echte newlines
-  htmlContent = responseData.json.text.replace(/\\n/g, '').trim();
-} else {
-  console.warn("Geen content gevonden in response");
-  // Provide a fallback content to prevent rendering issues
-  htmlContent = `
-    <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-      <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-      <div style="background-color: rgba(255, 0, 0, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ff5555; margin-bottom: 20px;">
-        <h2 style="color: #ff5555; margin-top: 0;">Geen content gevonden</h2>
-        <p>Er kon geen content worden opgehaald uit de API-respons. Probeer het later opnieuw.</p>
-      </div>
+let contentFound = false;
+let htmlContent = `
+  <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+    <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+    <div style="background-color: rgba(255, 0, 0, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ff5555; margin-bottom: 20px;">
+      <h2 style="color: #ff5555; margin-top: 0;">Geen content gevonden</h2>
+      <p>Er kon geen content worden opgehaald uit de API-respons. Probeer het later opnieuw.</p>
     </div>
-  `;
-}
+  </div>
+`;
+console.log("Full response:", JSON.stringify(responseData, null, 2));
 
-
-// Case 1: Direct HTML string
-if (typeof responseData === 'string') {
-  // First check if it's HTML
-  if (responseData.trim().startsWith('<')) {
-    htmlContent = responseData;
-    console.log("Using direct HTML string");
-  } 
-  // Then check if it's Markdown code block with HTML
-  else if (responseData.includes('```html')) {
-    const startMarker = '```html';
-    const endMarker = '```';
+// Try all possible ways to extract content
+try {
+  if (Array.isArray(responseData) && responseData.length > 0) {
+    console.log("Response is an array with", responseData.length, "items");
     
-    const startIndex = responseData.indexOf(startMarker) + startMarker.length;
-    const endIndex = responseData.lastIndexOf(endMarker);
-    
-    if (startIndex !== -1 && endIndex !== -1) {
-      htmlContent = responseData.substring(startIndex, endIndex).trim();
-      console.log("Extracted HTML from markdown code block");
+    // Check the first item for the output field
+    const firstItem = responseData[0];
+    if (firstItem && firstItem.output) {
+      const outputText = firstItem.output;
+      
+      // Convert the markdown-like text to HTML
+      htmlContent = `
+        <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+          <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+          <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
+            ${formatContentToHtml(outputText)}
+          </div>
+        </div>
+      `;
+      contentFound = true;
+      console.log("Extracted content from array[0].output");
     }
   }
-  // If it's plain text, convert it to HTML
-  else {
-    // If it's plain text, convert it to HTML directly
+
+  else if (responseData && responseData.output) {
+    // Get the output text and replace newlines with <br> tags
+    const outputText = responseData.output;
+    
+    // Format text into HTML with proper styling
+    htmlContent = `
+      <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+        <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+        <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
+          ${formatContentToHtml(outputText)}
+        </div>
+      </div>
+    `;
+    contentFound = true;
+    console.log("Extracted and formatted content from output field");
+  }
+  else if (typeof responseData === 'string') {
+    // If the entire response is a string
     htmlContent = `
       <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
         <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
@@ -352,68 +377,231 @@ if (typeof responseData === 'string') {
         </div>
       </div>
     `;
-    console.log("Converted plain text to HTML");
-  }
-}
-// Case 2: JSON object with HTML field
-else if (responseData && typeof responseData === 'object') {
-  console.log("JSON response keys:", Object.keys(responseData));
-  
-  // Try multiple possible field names
-  const possibleFields = ['html', 'text', 'output', 'content', 'result', 'data', 'message', 'response'];
-  for (const field of possibleFields) {
-    if (responseData[field] && typeof responseData[field] === 'string') {
-      htmlContent = responseData[field];
-      console.log(`Extracted content from .${field} property`);
-      break;
+    contentFound = true;
+    console.log("Using direct response string");
+  } 
+  else if (responseData && typeof responseData === 'object') {
+    console.log("Response keys:", Object.keys(responseData));
+    
+    // First, check for output which is what your n8n is returning
+    if (responseData.output) {
+      const outputText = responseData.output;
+      htmlContent = `
+        <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+          <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+          <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6; white-space: pre-wrap;">
+            ${outputText}
+          </div>
+        </div>
+      `;
+      contentFound = true;
+      console.log("Extracted content from output field");
     }
-  }
-  
-  // If we still don't have content but have a nested structure
-  if (!htmlContent && responseData.data && typeof responseData.data === 'object') {
-    console.log("Nested data keys:", Object.keys(responseData.data));
-    for (const field of possibleFields) {
-      if (responseData.data[field] && typeof responseData.data[field] === 'string') {
-        htmlContent = responseData.data[field];
-        console.log(`Extracted content from .data.${field} property`);
-        break;
+    
+    // Then check for nested data or other fields if needed
+    else {
+      const possibleFields = ['html', 'text', 'output', 'content', 'result', 'data', 'message', 'response'];
+      for (const field of possibleFields) {
+        if (responseData[field]) {
+          const fieldContent = responseData[field];
+          const textContent = typeof fieldContent === 'string' ? fieldContent : JSON.stringify(fieldContent, null, 2);
+          
+          htmlContent = `
+            <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+              <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+              <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6; white-space: pre-wrap;">
+                ${textContent.replace(/\n/g, '<br>')}
+              </div>
+            </div>
+          `;
+          contentFound = true;
+          console.log(`Extracted content from ${field} field`);
+          break;
+        }
       }
     }
+    
+    // If nothing matched, but we have a valid response, show the raw data
+    if (!contentFound && Object.keys(responseData).length > 0) {
+      htmlContent = `
+        <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+          <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+          <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
+            <h3>Ruwe API-gegevens:</h3>
+            <pre style="white-space: pre-wrap; overflow-wrap: break-word;">${JSON.stringify(responseData, null, 2)}</pre>
+          </div>
+        </div>
+      `;
+      contentFound = true;
+      console.log("Using raw response data");
+    }
+  }
+} catch (extractionError) {
+  console.error("Error during content extraction:", extractionError);
+}
+// Helper function to convert the markdown-like format to HTML
+// Better HTML formatting function for the report
+// Better HTML formatting function for the report
+// Better HTML formatting function for the report
+function formatContentToHtml(text) {
+  if (!text) return '';
+  
+  let html = text;
+  
+  // Step 1: Extract sections by finding all bold headings
+  const sections = [];
+  const sectionRegex = /\*\*(.*?)\*\*/g;
+  let match;
+  let lastIndex = 0;
+  
+  // Find all section headings
+  while ((match = sectionRegex.exec(html)) !== null) {
+    const headingText = match[1];
+    const startIndex = match.index;
+    
+    // If this isn't the first heading, add the previous section's content
+    if (startIndex > lastIndex) {
+      const prevHeadingEnd = lastIndex > 0 ? lastIndex + sections[sections.length - 1].heading.length + 4 : 0;
+      const content = html.substring(prevHeadingEnd, startIndex).trim();
+      
+      if (sections.length > 0) {
+        sections[sections.length - 1].content = content;
+      }
+    }
+    
+    sections.push({
+      heading: headingText,
+      content: '',
+      index: startIndex
+    });
+    
+    lastIndex = startIndex;
+  }
+  
+  // Add the content for the last section
+  if (sections.length > 0) {
+    const lastSection = sections[sections.length - 1];
+    const startIndex = lastSection.index + lastSection.heading.length + 4; // +4 for the '**' on both sides
+    lastSection.content = html.substring(startIndex).trim();
+  }
+  
+  // Step 2: Convert each section to properly formatted HTML
+  let formattedHtml = '';
+  
+  for (const section of sections) {
+    // Format the section heading (main sections vs subsections)
+    let headingHtml = '';
+    
+    if (section.heading === 'Eindrapport: Online Strategie voor Swiss Sense' || 
+        section.heading === 'Marketinganalyse Rapport') {
+      // Main title
+      headingHtml = `<h1 class="text-2xl font-bold text-white mb-4">${section.heading}</h1>`;
+    } else {
+      // Section heading
+      headingHtml = `<h2 class="text-xl font-bold text-blue-400 mt-6 mb-3">${section.heading}</h2>`;
+    }
+    
+    // Format the section content
+    let contentHtml = section.content;
+    
+    // Format bullet points
+    if (contentHtml.includes('*   ')) {
+      // Start a list
+      let listHtml = '<ul class="list-disc pl-6 space-y-2 my-3">';
+      
+      // Split by bullet points
+      const listItems = contentHtml.split('*   ').filter(item => item.trim());
+      
+      for (const item of listItems) {
+        // Clean up the list item and add it to the HTML
+        const cleanItem = item.trim();
+        listHtml += `<li>${cleanItem}</li>`;
+      }
+      
+      // Close the list
+      listHtml += '</ul>';
+      
+      // Replace the original bulleted text with the HTML list
+      contentHtml = listHtml;
+    } else {
+      // For regular paragraphs, add spacing
+      const paragraphs = contentHtml.split('\n\n');
+      contentHtml = paragraphs.map(p => `<p class="mb-3">${p.replace(/\n/g, '<br>')}</p>`).join('');
+    }
+    
+    // Add the formatted section to the output
+    formattedHtml += headingHtml + contentHtml;
+  }
+  
+  // If there are no sections (unusual case), just format the whole text
+  if (sections.length === 0) {
+    formattedHtml = `<p>${html.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
+  }
+  
+  // Final formatting touches for specific sections
+  formattedHtml = formattedHtml
+    // Style market share data
+    .replace(/Swiss Sense market share: ([\d.]+)%/g, 'Swiss Sense market share: <span class="text-green-400 font-bold">$1%</span>')
+    // Highlight competitors
+    .replace(/(Leading competitor:) ([^<]+)/g, '$1 <span class="text-yellow-300">$2</span>')
+    // Format strong performers
+    .replace(/(Swiss Sense is a strong performer)/g, '<span class="text-green-400">$1</span>')
+    // Highlight exposure metrics
+    .replace(/(Exposure: [\d,]+)/g, '<span class="text-gray-400">$1</span>');
+  
+  return `<div class="bg-gray-800 text-white p-4 rounded-lg">${formattedHtml}</div>`;
+}
+
+// To use this in your code:
+if (Array.isArray(responseData) && responseData.length > 0) {
+  console.log("Response is an array with", responseData.length, "items");
+  
+  // Check the first item for the output field
+  const firstItem = responseData[0];
+  if (firstItem && firstItem.output) {
+    const outputText = firstItem.output;
+    
+    // Convert the markdown-like text to HTML with enhanced formatting
+    htmlContent = formatContentToHtml(outputText);
+    contentFound = true;
+    console.log("Extracted and formatted content from array[0].output");
   }
 }
 
-// Log the extracted content
-console.log("Extracted HTML content length:", htmlContent?.length || 0);
+// Set the report content
+setReportContent(ensureCompleteHtml(htmlContent));
+
+// Final check - if we still don't have content, set a clear error message
+if (!contentFound) {
+  console.warn("No content could be extracted from the response");
+}
+
+// Set the report content
+setReportContent(ensureCompleteHtml(htmlContent));
+
+
+
+// Log the final content
+console.log("Final HTML content length:", htmlContent?.length || 0);
 if (htmlContent?.length > 0) {
   console.log("HTML content preview:", htmlContent.substring(0, 200));
 }
 
-// Create a basic HTML structure if the content is plain text and doesn't already have HTML tags
-if (htmlContent && !htmlContent.includes('<html') && !htmlContent.includes('<div') && !htmlContent.includes('<p')) {
-  const formattedHtml = `
-    <div style="color: #333; padding: 20px; font-family: Arial, sans-serif;">
-      <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-      <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
-        ${htmlContent.replace(/\n/g, '<br>')}
-      </div>
-    </div>
-  `;
-  htmlContent = formattedHtml;
-  console.log("Applied HTML formatting to content");
-}
-            
-            setReportContent(ensureCompleteHtml(htmlContent));
-            setReportTitle(defaultTitle);
-            setReportType(reportTypeValue);
-            setShowDraftReport(true);
-            setIsPlanning(true);
-            
-            setMessages(prev => [...prev, {
-              message: htmlContent && htmlContent.length > 50 ? 
-                analysisReadyMessage : 
-                "Er is een beperkt rapport gegenereerd. Je kunt het bekijken aan de rechterkant, maar probeer het later nog eens voor een vollediger resultaat.",
-              sender: "AI"
-            }]);
+// Set report content once, after all processing is done
+setReportContent(ensureCompleteHtml(htmlContent));
+setReportTitle(defaultTitle);
+setReportType(reportTypeValue);
+setShowDraftReport(true);
+setIsPlanning(true);
+
+// Update the user message based on content found
+setMessages(prev => [...prev, {
+  message: contentFound ? 
+    analysisReadyMessage : 
+    "Er is een beperkt rapport gegenereerd. Je kunt het bekijken aan de rechterkant, maar probeer het later nog eens voor een vollediger resultaat.",
+  sender: "AI"
+}]);
+
             
           } catch (error) {
             console.error("Marketing API error:", error);
