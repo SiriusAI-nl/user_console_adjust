@@ -134,3 +134,57 @@
 .custom_srollbar::-webkit-scrollbar-thumb{
   background-color: white;
 }
+
+.final-market-report {
+  color: #ffffff;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  line-height: 1.6;
+}
+
+.final-market-report h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #ffffff;
+}
+
+.final-market-report h2 {
+  font-size: 20px;
+  color: #60a5fa;
+  margin-top: 30px;
+  margin-bottom: 10px;
+}
+
+.final-market-report p,
+.final-market-report ul {
+  margin-bottom: 15px;
+}
+
+.final-market-report ul {
+  list-style: disc;
+  margin-left: 20px;
+}
+
+.final-market-report table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 20px;
+}
+
+.final-market-report table, th, td {
+  border: 1px solid #ccc;
+}
+
+.final-market-report th, .final-market-report td {
+  padding: 8px;
+  text-align: left;
+}
+
+.final-market-report th {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.final-market-report tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.05);
+}

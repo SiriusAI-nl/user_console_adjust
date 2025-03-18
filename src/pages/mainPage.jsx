@@ -7,6 +7,7 @@ import Message from "@/components/Message";
 import Starting from "@/components/starting";
 import { PiPaperPlaneTiltFill } from "react-icons/pi";
 import { FaCircleStop } from "react-icons/fa6";
+import DOMPurify from 'dompurify'; 
 import axios from "axios";
 import {
   FaFileExcel,
@@ -17,6 +18,11 @@ import {
 } from "react-icons/fa";
 // Import the callN8nWebhook function
 import { callN8nWebhook } from "@/hooks/webhookService";
+
+const sanitizeHtml = (html) => {
+  return html ? DOMPurify.sanitize(html) : '';
+};
+
 
 function ensureCompleteHtml(html) {
   if (!html) return html;
@@ -277,7 +283,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             // Direct API call to the marketing webhook
             const response = await axios({
               method: 'POST',
-              url: 'https://n8n.gcp.siriusai.nl/webhook/master',
+              url: 'https://n8n.gcp.siriusai.nl/webhook/master_multi_agent',
               headers: {
                 'Content-Type': 'application/json',
               },
@@ -1065,45 +1071,19 @@ setMessages(prev => [...prev, {
               <div className="flex-1 p-4 overflow-y-auto">
   {reportContent ? (
     <div 
-      className="bg-[#1c1e26] text-white competitor-report"
-      style={{
-        padding: '20px',
-        fontSize: '16px',
-        lineHeight: '1.5',
-        color: '#fff',
-        fontFamily: 'Arial, sans-serif',
-        maxWidth: '100%',
-        overflowWrap: 'break-word',
-        wordBreak: 'break-word'
-      }}
-    >
-      {/* Use a try-catch wrapper to prevent render errors */}
-      {(() => {
-        try {
-          return <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(reportContent) }} />;
-        } catch (error) {
-          console.error("Error rendering HTML content:", error);
-          return (
-            <div>
-              <h2 className="text-xl text-red-400 mb-4">Error displaying report content</h2>
-              <pre className="whitespace-pre-wrap text-sm bg-gray-800 p-4 rounded">
-                {reportContent}
-              </pre>
-            </div>
-          );
-        }
-      })()}
-    </div>
+      className="report-container bg-[#1c1e26] text-white p-4 rounded-lg"
+      dangerouslySetInnerHTML={{ __html: sanitizeHtml(reportContent) }}
+    />
   ) : (
-                  <div className="flex justify-center items-center h-full">
-                  <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-                  <p className="text-gray-400">Rapport wordt geladen...</p>
-                  </div>
-                  </div>
-                   )}
-              
-              </div>
+    <div className="flex justify-center items-center h-full">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+        <p className="text-gray-400">Rapport wordt geladen...</p>
+      </div>
+    </div>
+  )}
+</div>
+
             </div>
           </div>
         ) : (
