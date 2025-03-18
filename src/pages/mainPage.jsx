@@ -277,7 +277,7 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
             // Direct API call to the marketing webhook
             const response = await axios({
               method: 'POST',
-              url: 'https://n8n.gcp.siriusai.nl/webhook/master2',
+              url: 'https://n8n.gcp.siriusai.nl/webhook/master',
               headers: {
                 'Content-Type': 'application/json',
               },
@@ -289,7 +289,19 @@ const MainPage = ({ setMenuOpen, setIsBtn }) => {
               },
               timeout: 500000 // 2 minutes timeout
             });
-            
+            const checkStatus = async (jobId) => {
+              const status = await axios.get(`${API_URL}/status/${jobId}`);
+              if (status.data.complete) {
+                // Now show the completion message
+                setMessages(prev => [...prev, {
+                  message: analysisReadyMessage,
+                  sender: "AI"
+                }]);
+              } else {
+                // Check again in a few seconds
+                setTimeout(() => checkStatus(jobId), 3000);
+              }
+            };
             console.log("Marketing API response received");
             console.log("Response status:", response.status);
             console.log("Response type:", typeof response.data);
