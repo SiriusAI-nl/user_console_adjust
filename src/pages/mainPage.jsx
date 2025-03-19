@@ -200,12 +200,18 @@
               headers: {
                 'Content-Type': 'multipart/form-data'
               },
-              timeout: 300000, // 5 minute timeout
+              timeout: 10000000, // 5 minute timeout
               onUploadProgress: (progressEvent) => {
                 const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                 console.log('Upload progress:', percentCompleted + '%');
               }
+
+              
             });
+            const parsedData = response.data;
+  setReportContent(generateSafeHtml(parsedData));
+  setIsChatLoading(false);
+  setIsAIType(false);
 
             console.log('Upload response:', response.data);
 
@@ -224,6 +230,11 @@
           }
         }
       } catch (error) {
+        console.error("Axios Error details:", {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+        });
         console.error('Upload error:', {
           message: error.message,
           response: error.response?.data,
@@ -242,8 +253,97 @@
         setUploadFileBtn(false);
       }
     };
+    const generateSimplifiedTable = (data, columns) => {
+      if (!data || !Array.isArray(data) || data.length === 0) {
+        return '<p>No data available.</p>';
+      }
+      
+      let html = '<table style="width:100%; border-collapse:collapse; margin:10px 0; background:rgba(255,255,255,0.1); border-radius:4px;">';
+      
+      // Header
+      html += '<tr>';
+      columns.forEach(col => {
+        html += `<th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,0.2);">${col.replace(/_/g, ' ')}</th>`;
+      });
+      html += '</tr>';
+      
+      // Data - limit rows for performance
+      const maxRows = Math.min(data.length, 10);
+      for (let i = 0; i < maxRows; i++) {
+        html += '<tr>';
+        columns.forEach(col => {
+          html += `<td style="padding:8px;">${data[i][col] || 'N/A'}</td>`;
+        });
+        html += '</tr>';
+      }
+      
+      html += '</table>';
+      return html;
+    };
+    
+    // Function to generate the complete report
+    const generateCompleteReport = (report) => {
+      if (!report) {
+        return '<p>No report data available.</p>';
+      }
+      
+      return `
+        <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+          <h1>Swiss Sense Market Analysis</h1>
+          
+          <div style="display:flex; flex-direction:column; gap:20px;">
+            <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:8px;">
+              <h2>Market Overview</h2>
+              <p>Total Search Volume: ${report?.market_overview?.total_search_volume || 'N/A'}</p>
+              <p>Total Commercial Value: ${report?.market_overview?.total_commercial_value || 'N/A'}</p>
+            </div>
+            
+            <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:8px;">
+              <h2>Branded vs Non-Branded</h2>
+              <ul>
+                ${Object.entries(report?.branded_vs_non_branded || {}).map(([key, value]) => 
+                  `<li>${key.replace(/_/g, ' ')}: ${value}</li>`
+                ).join('')}
+              </ul>
+            </div>
+          </div>
+          
+          <h2>Top 10 Keywords</h2>
+          ${generateSimplifiedTable(report?.top_10_keywords || [], ['keyword', 'search_volume', 'commercial_value'])}
+          
+          <h2>Trend Analysis</h2>
+          ${generateSimplifiedTable(report?.trend_analysis || [], ['segment', '2021', '2022', '2023', '2024', '2025 (partial)', 'YoY Change (explicitly latest available)'])}
+          
+          <h2>Competitive Positioning</h2>
+          ${generateSimplifiedTable(report?.competitive_positioning || [], ['segment', 'top_performer', 'SwissSense.nl_marktaandeel', 'prestatiekloof'])}
+          
+          <h2>Growth Potential</h2>
+          ${generateSimplifiedTable(report?.growth_potential || [], ['segment', 'current_volume', 'commercial_value', 'growth_potential'])}
+          
+          <h2>Strategic Recommendations</h2>
+          <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:8px; margin:15px 0;">
+            <ul>
+              ${Array.isArray(report?.strategic_recommendations) 
+                ? report.strategic_recommendations.map(rec => `<li>${rec}</li>`).join('') 
+                : '<li>No recommendations available</li>'}
+            </ul>
+          </div>
+          
+          <h2>Data Limitations</h2>
+          <div style="background:rgba(255,255,255,0.1); padding:15px; border-radius:8px; margin:15px 0;">
+            <ul>
+              ${Array.isArray(report?.data_limitations) 
+                ? report.data_limitations.map(limit => `<li>${limit}</li>`).join('') 
+                : '<li>No data limitations specified</li>'}
+            </ul>
+          </div>
+        </div>
+      `;
+    };
 
     // Updated Message handler with n8n integration
+    // Replace your current handleMessage function with this approach
+    // Updated handleMessage function with direct processing (no processReportInChunks reference)
     const handleMessage = async () => {
       if (isType || !newtext.trim()) return;
     
@@ -259,6 +359,30 @@
       setIsAIType(true);
     
       try {
+        // First, immediately show a placeholder report
+        setReportTitle("Marketing Analysis");
+        setReportType("marketing_analysis");
+        setShowDraftReport(true);
+        setIsPlanning(true);
+        
+        // Show a simple placeholder while loading
+        setReportContent(`
+          <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+            <h1>Swiss Sense Market Analysis</h1>
+            <div style="text-align:center; padding:40px 20px;">
+              <p style="font-size:16px; margin-bottom:20px;">Analyzing marketing data for SwissSense...</p>
+              <p>This may take a minute to complete. The report will appear here automatically.</p>
+            </div>
+          </div>
+        `);
+    
+        // Notify user that analysis is underway
+        setMessages(prev => [...prev, {
+          message: "Je marketinganalyse wordt voorbereid. Een moment geduld alstublieft...",
+          sender: "AI"
+        }]);
+    
+        // Now make the actual API call
         const response = await axios({
           method: 'POST',
           url: 'https://n8n.gcp.siriusai.nl/webhook/market-master-2-ui',
@@ -272,12 +396,11 @@
           timeout: 500000
         });
     
-        // EXTENSIVE LOGGING
         console.log("FULL RESPONSE:", JSON.stringify(response, null, 2));
         console.log("RESPONSE DATA TYPE:", typeof response.data);
         console.log("RESPONSE DATA:", JSON.stringify(response.data, null, 2));
     
-        // Extremely defensive parsing
+        // Use your existing parsing logic
         const parseData = (data) => {
           if (Array.isArray(data) && data[0]) {
             try {
@@ -313,84 +436,165 @@
         };
     
         const parsedData = parseData(response.data);
-    
-        // More detailed logging of parsed data
         console.log("PARSED DATA:", JSON.stringify(parsedData, null, 2));
     
-        // Extremely defensive HTML generation
-        const generateSafeHtml = (data) => {
-          try {
-            // Multiple paths to find relevant data
-            const report = 
-              data?.market_analysis_report || 
-              data?.report || 
-              data?.keyword_analysis_report || 
-              data;
-    
-            const overview = 
-              report?.keyword_analysis?.market_overview || 
-              report?.market_overview || 
-              {};
-    
-            const segments = 
-              overview?.segment_breakdown || 
-              overview?.segments || 
-              [];
-    
-            return `
-              <div style="color: #fff; padding: 20px; background: linear-gradient(to right, #6e8efb, #a777e3);">
-                <h1>Market Analysis Report</h1>
-                <p>Total Search Volume: ${overview.total_search_volume || 0}</p>
-                <p>Total Commercial Value: ${overview.total_commercial_value || '€0'}</p>
-                
-                <h2>Segments</h2>
-                <table style="width: 100%; color: white;">
-                  <thead>
-                    <tr>
-                      <th>Segment</th>
-                      <th>Search Volume</th>
-                      <th>Percentage</th>
-                      <th>Commercial Value</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${segments.map(segment => `
-                      <tr>
-                        <td>${segment.segment || segment.name || 'N/A'}</td>
-                        <td>${segment.search_volume || 'N/A'}</td>
-                        <td>${segment.percentage || 'N/A'}</td>
-                        <td>${segment.commercial_value || 'N/A'}</td>
-                      </tr>
-                    `).join('')}
-                  </tbody>
-                </table>
+        // Check for HTML structure in the response (new format)
+        if (parsedData?.keyword_analysis_report?.html_report) {
+          console.log("Found HTML report structure in response");
+          
+          // Extract sections
+          const htmlReport = parsedData.keyword_analysis_report.html_report;
+          
+          if (htmlReport.progressive_sections?.overview) {
+            // First show just the overview section
+            setReportContent(`
+              <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+                <h1 style="text-align:center;">Swiss Sense Market Analysis</h1>
+                ${htmlReport.progressive_sections.overview}
+                <div id="loading-indicator" style="text-align:center; padding:20px; margin-top:20px; background:rgba(255,255,255,0.1); border-radius:8px;">
+                  <p>Loading more sections...</p>
+                </div>
               </div>
-            `;
-          } catch (error) {
-            console.error("HTML Generation Error:", error);
-            return `
-              <div style="color: white;">
-                <h1>Error Generating Report</h1>
-                <p>${error.message}</p>
-              </div>
-            `;
+            `);
+            
+            // Show progress message
+            setMessages(prev => [...prev, {
+              message: "De eerste resultaten zijn beschikbaar. De rest van het rapport wordt geladen...",
+              sender: "AI"
+            }]);
+            
+            // After a short delay, show the full report
+            setTimeout(() => {
+              if (htmlReport.full_report) {
+                setReportContent(htmlReport.full_report);
+              } else {
+                // Fallback to combining sections
+                setReportContent(`
+                  <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+                    <h1 style="text-align:center;">Swiss Sense Market Analysis</h1>
+                    ${htmlReport.progressive_sections.overview || ''}
+                    ${htmlReport.progressive_sections.segments || ''}
+                    ${htmlReport.progressive_sections.keywords || ''}
+                  </div>
+                `);
+              }
+              
+              // Show completion message
+              setMessages(prev => [...prev, {
+                message: "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
+                sender: "AI"
+              }]);
+            }, 1500);
+          } else if (htmlReport.full_report) {
+            // If no progressive sections, just show the full report
+            setReportContent(htmlReport.full_report);
+            
+            setMessages(prev => [...prev, {
+              message: "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
+              sender: "AI"
+            }]);
           }
-        };
-    
-        const htmlContent = generateSafeHtml(parsedData);
-        
-        setReportContent(htmlContent);
-        setReportTitle("Marketing Analysis");
-        setReportType("marketing_analysis");
-        setShowDraftReport(true);
-        setIsPlanning(true);
-    
-        // Notify user of completion
-        setMessages(prev => [...prev, {
-          message: "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
-          sender: "AI"
-        }]);
-    
+        } else {
+          // Fallback to the original client-side HTML generation
+          console.log("No HTML report in response, generating HTML client-side");
+          
+          
+          // Extract the report structure
+          const report = parsedData?.keyword_analysis_report;
+          if (!report) {
+            console.error("No report data found in parsed response");
+            setReportContent(`
+              <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+                <h1>Swiss Sense Market Analysis</h1>
+                <div style="text-align:center; padding:20px; background:rgba(255,255,255,0.1); border-radius:8px;">
+                  <p>No report data found in the response. Please try again.</p>
+                </div>
+              </div>
+            `);
+            
+            setMessages(prev => [...prev, {
+              message: "Er is een probleem met de data van de analyse. Probeer het opnieuw.",
+              sender: "AI"
+            }]);
+            
+            return;
+          }
+          
+          const overview = report.market_overview || {};
+          
+          // First stage - show overview
+          setReportContent(`
+            <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+              <h1>Swiss Sense Market Analysis</h1>
+              
+              <h2>Market Overview</h2>
+              <p>Total Search Volume: ${overview.total_search_volume || 'N/A'}</p>
+              <p>Total Commercial Value: ${overview.total_commercial_value || 'N/A'}</p>
+              
+              <div id="loading-indicator" style="text-align:center; padding:20px; margin-top:20px; background:rgba(255,255,255,0.1); border-radius:8px;">
+                <p>Loading report sections...</p>
+              </div>
+            </div>
+          `);
+          
+          // Notify user of progress
+          setMessages(prev => [...prev, {
+            message: "De eerste resultaten zijn beschikbaar. De rest van het rapport wordt geladen...",
+            sender: "AI"
+          }]);
+          
+          // After a short delay, render the full report
+          setTimeout(() => {
+            try {
+              // Use your original report generation function
+              const html = `
+                <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+                  <h1>Swiss Sense Market Analysis</h1>
+            
+                  <h2>Market Overview</h2>
+                  <p>Total Search Volume: ${overview.total_search_volume || 'N/A'}</p>
+                  <p>Total Commercial Value: ${overview.total_commercial_value || 'N/A'}</p>
+                  ${generateTable('Segments Breakdown', overview.segment_breakdown || [], ['segment', 'search_volume', 'percentage', 'commercial_value'])}
+            
+                  <h2>Branded vs Non-Branded Keywords</h2>
+                  ${generateList(report.branded_vs_non_branded || {})}
+            
+                  <h2>Top 10 Keywords by Search Volume & Commercial Value</h2>
+                  ${generateTable('', report.top_10_keywords || [], ['keyword', 'search_volume', 'commercial_value'])}
+            
+                  <h2>Trend Analysis</h2>
+                  ${generateTable('', report.trend_analysis || [], ['segment', '2021', '2022', '2023', '2024', '2025 (partial)', 'YoY Change (explicitly latest available)'])}
+            
+                  <h2>Competitive Positioning</h2>
+                  ${generateTable('', report.competitive_positioning || [], ['segment', 'top_performer', 'SwissSense.nl_marktaandeel', 'prestatiekloof'])}
+            
+                  <h2>Growth Potential</h2>
+                  ${generateTable('', report.growth_potential || [], ['segment', 'current_volume', 'commercial_value', 'growth_potential'])}
+            
+                  <h2>Strategic Recommendations</h2>
+                  ${generateList(report.strategic_recommendations || [])}
+            
+                  <h2>Data Limitations</h2>
+                  ${generateList(report.data_limitations || [])}
+                </div>
+              `;
+              
+              setReportContent(html);
+              
+              // Final notification
+              setMessages(prev => [...prev, {
+                message: "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
+                sender: "AI"
+              }]);
+            } catch (error) {
+              console.error("Error rendering full report:", error);
+              setMessages(prev => [...prev, {
+                message: "Er is een fout opgetreden bij het genereren van het volledige rapport: " + error.message,
+                sender: "AI"
+              }]);
+            }
+          }, 1500);
+        }
       } catch (error) {
         console.error("COMPLETE ERROR:", error);
         
@@ -402,12 +606,21 @@
             <p><strong>Status:</strong> ${error.response?.status || 'Onbekend'}</p>
           </div>
         `);
+        
+        setMessages(prev => [...prev, {
+          message: `Er is een fout opgetreden bij het genereren van de analyse: ${error.message}`,
+          sender: "AI"
+        }]);
       } finally {
         setIsType(false);
         setIsChatLoading(false);
         setIsAIType(false);
       }
     };
+
+
+// Function to generate the complete report (called after initial sections are shown)
+
             
          
     //End of handleMessage function
@@ -552,68 +765,135 @@
             .replace(/on\w+="[^"]*"/g, '')
         : '';
     };
-    const generateHtmlContent = (data) => {
-      // Safely extract data with fallback
-      const safeGet = (obj, path, defaultValue = 'Unavailable') => {
-        return path.split('.').reduce((acc, part) => 
-          acc && acc[part] !== undefined ? acc[part] : defaultValue, obj);
-      };
-  
-      // Extract key data sections
-      const keywordAnalysisReport = safeGet(data, 'keyword_analysis_report', {});
-      const marketOverview = safeGet(keywordAnalysisReport, 'market_overview', {});
-      const competitivePositioning = safeGet(keywordAnalysisReport, 'competitive_positioning', {});
-      const trendAnalysis = safeGet(keywordAnalysisReport, 'trend_analysis', {});
-      const growthPotential = safeGet(keywordAnalysisReport, 'growth_potential', {});
-  
-      // Extract specific values
-      const totalSearchVolume = safeGet(marketOverview, 'total_search_volume', 'Unavailable');
-      const totalCommercialValue = safeGet(marketOverview, 'total_commercial_value', 'Unavailable');
-  
-      // Segment breakdown
-      const segmentBreakdown = safeGet(marketOverview, 'segment_breakdown_table.rows', []);
-  
-      return `
-        <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif; background: linear-gradient(to right, #6e8efb, #a777e3); border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
-          <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">
-            Marketing Analysis Report
-          </h1>
-          
-          <div style="margin-bottom: 30px;">
-            <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">Market Overview</h2>
-            <p style="font-size: 14px; margin-bottom: 5px;">
-              <strong>Total Search Volume:</strong> ${totalSearchVolume}
-            </p>
-            <p style="font-size: 14px; margin-bottom: 5px;">
-              <strong>Total Commercial Value:</strong> ${totalCommercialValue}
-            </p>
+    const generateSafeHtml = (data) => {
+      try {
+        // Get the market analysis data from the response
+        const marketData = data.MARKET_ANALYSIS_REPORT || {};
+        
+        // Extract the relevant sections
+        const overview = marketData.MARKET_OVERVIEW || {};
+        const segments = overview.Segment_Breakdown_Table?.rows || [];
+        const keywordDistribution = marketData.BRANDED_VS_NON_BRANDED_KEYWORD_DISTRIBUTION || {};
+        const topKeywords = marketData.TOP_10_KEYWORDS_BY_SEARCH_VOLUME_COMMERCIAL_VALUE?.rows || [];
+        const competitivePositioning = marketData.COMPETITIVE_POSITIONING?.Competitor_Analysis || [];
+        const growthPotential = marketData.GROWTH_POTENTIAL || "";
+        const recommendations = marketData.STRATEGIC_RECOMMENDATIONS || "";
+        const limitations = marketData.DATA_LIMITATIONS || [];
+        
+        return `
+          <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif; background: linear-gradient(to right, #6e8efb, #a777e3); border-radius: 10px;">
+            <h1 style="text-align:center;">Swiss Sense Market Analysis</h1>
             
-            <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
-              <thead style="background-color: rgba(255,255,255,0.1);">
-                <tr style="font-weight: bold;">
-                  <th style="padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.3);">Segment</th>
-                  <th style="padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.3);">Volume</th>
-                  <th style="padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.3);">Value (€)</th>
+            <h2>Market Overview</h2>
+            <p>Total Search Volume: ${overview["Total Search Volume"] || "N/A"}</p>
+            <p>Total Commercial Value: ${overview["Total Commercial Value"] || "N/A"}</p>
+            
+            <table style="width:100%; color:white; border-collapse: collapse; margin: 20px 0;">
+              <thead style="background:rgba(255,255,255,0.2);">
+                <tr>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Segment</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Search Volume</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Percentage (%)</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Commercial Value (€)</th>
                 </tr>
               </thead>
               <tbody>
-                ${segmentBreakdown.map(segment => `
-                  <tr>
-                    <td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${segment.Segment || 'N/A'}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${segment.Volume || 'N/A'}</td>
-                    <td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${segment['Value (€)'] || 'N/A'}</td>
+                ${segments.map(segment => `
+                  <tr style="background:rgba(255,255,255,0.05);">
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${segment.Segment || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${segment["Search Volume"] || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${segment["Percentage (%)"] || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${segment["Commercial Value (€)"] || "N/A"}</td>
                   </tr>
-                `).join('') || `
-                  <tr>
-                    <td colspan="3" style="text-align: center; padding: 20px;">No segment data available</td>
-                  </tr>
-                `}
+                `).join('')}
               </tbody>
             </table>
+            
+            <h2>Branded vs. Non-Branded Keywords</h2>
+            <ul>
+              <li>Branded Keywords: ${keywordDistribution["Branded keywords count"] || "0"} (Volume: ${keywordDistribution["Branded keywords volume"] || "0"})</li>
+              <li>Non-Branded Keywords: ${keywordDistribution["Non-branded keywords count"] || "0"} (Volume: ${keywordDistribution["Non-branded keywords volume"] || "0"})</li>
+            </ul>
+            
+            <h2>Top 10 Keywords</h2>
+            <table style="width:100%; color:white; border-collapse: collapse; margin: 20px 0;">
+              <thead style="background:rgba(255,255,255,0.2);">
+                <tr>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Keyword</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Search Volume</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Commercial Value (€)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${topKeywords.map(kw => `
+                  <tr style="background:rgba(255,255,255,0.05);">
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${kw.Keyword || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${kw["Search Volume"] || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${kw["Commercial Value (€)"] || "N/A"}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            
+            <h2>Competitive Positioning</h2>
+            <table style="width:100%; color:white; border-collapse: collapse; margin: 20px 0;">
+              <thead style="background:rgba(255,255,255,0.2);">
+                <tr>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Segment</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Top Performer</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Top Performer Exposure</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">SwissSense.nl Exposure</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Swiss Sense Market Share (%)</th>
+                  <th style="padding: 8px; text-align: left; border: 1px solid rgba(255,255,255,0.1);">Performance Gap</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${competitivePositioning.map(comp => `
+                  <tr style="background:rgba(255,255,255,0.05);">
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${comp.Segment || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${comp["Top Performer"] || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${comp["Top Performer Exposure"] || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${comp["SwissSense.nl Exposure"] || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${comp["SwissSense.nl Marktaandeel (%)"] || "N/A"}</td>
+                    <td style="padding: 8px; border: 1px solid rgba(255,255,255,0.1);">${comp.Prestatiekloof || "N/A"}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            
+            <h2>Growth Potential</h2>
+            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
+              ${growthPotential.split('\n').map(line => `<p>${line}</p>`).join('')}
+            </div>
+            
+            <h2>Strategic Recommendations</h2>
+            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
+              ${recommendations.split('\n').map(line => `<p>${line}</p>`).join('')}
+            </div>
+            
+            <h2>Data Limitations</h2>
+            <ul style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin: 15px 0;">
+              ${Array.isArray(limitations) 
+                ? limitations.map(limit => `<li style="margin-bottom: 8px;">${limit.replace(/^- /, '')}</li>`).join('')
+                : typeof limitations === 'string' 
+                  ? limitations.split('\n').map(line => `<li style="margin-bottom: 8px;">${line.replace(/^- /, '')}</li>`).join('')
+                  : '<li>No data limitations provided</li>'
+              }
+            </ul>
           </div>
-        </div>
-      `;
+        `;
+      } catch (error) {
+        console.error("HTML Generation Error:", error);
+        return `
+          <div style="color: white; padding: 20px;">
+            <h1>Error Generating Report</h1>
+            <p>An error occurred while generating the report: ${error.message}</p>
+            <p>Please check the console for more details.</p>
+          </div>
+        `;
+      }
     };
+    
 
     return (
       <div className="sm:static relative flex justify-center px-5 gap-x-5 h-[89vh]">
