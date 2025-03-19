@@ -784,7 +784,7 @@ setMessages(prev => [...prev, {
       
       // Set link attributes
       link.href = URL.createObjectURL(blob);
-      link.download = 'Concurrentieanalyse_Bedden_Matrassen.doc';
+      link.download = 'Digital_Insights_Swiss_Sense.docx';
       
       // Append link to the body
       document.body.appendChild(link);
