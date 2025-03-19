@@ -19,6 +19,15 @@
   // Import the callN8nWebhook function
   import { callN8nWebhook } from "@/hooks/webhookService";
 
+  const safeParseJson = (json) => {
+    try {
+      return JSON.parse(json);
+    } catch (error) {
+      console.error("JSON parse error:", error);
+      return {};
+    }
+  };
+  
   const sanitizeHtml = (html) => {
     return html ? DOMPurify.sanitize(html) : '';
   };
@@ -236,556 +245,231 @@
 
     // Updated Message handler with n8n integration
     const handleMessage = async () => {
+      // Guard clauses to prevent processing if already in progress or message is empty
       if (isType || !newtext.trim()) return;
     
-      // Add message to UI immediately
+      // Prepare UI for message processing
       setMessages((prevMessages) => [
         ...prevMessages,
         { message: newtext, sender: "user" },
       ]);
+      
+      // Reset input and set processing states
       setIsType(true);
       setNewtext("");
       setIsChatLoading(true);
       setIsAIType(true);
     
       try {
-        // Check if this is a competitor analysis request for beds/mattresses
-        const lowerText = newtext.toLowerCase();
-        
-        // Keywords for competitor analysis on beds and mattresses
-        const competitorKeywords = ['competitor', 'concurrentie', 'concurrenten', 'analyse', 'analysis'];
-        const productKeywords = [
-          'bed', 'bedden', 'matras', 'matrassen', 'mattress',
-          'slaap', 'slapen', 'slaapkamer'
-        ];
+        // Constants for the analysis
+        const defaultTitle = "Marketinganalyse Rapport";
+        const reportTypeValue = "marketing_analysis";
+        const analysisMessage = "Ik start een marketinganalyse...";
+        const analysisReadyMessage = "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.";
     
-        const marketingKeywords = [
-          'marketing', 'branding', 'promotie', 'promotion', 'campagne', 
-          'campaign', 'strategie', 'rapport'
-        ];
-      
-        
-        const hasCompetitorKeyword = competitorKeywords.some(keyword => lowerText.includes(keyword));
-        const hasProductKeyword = productKeywords.some(keyword => lowerText.includes(keyword));
-        const hasMarketingKeyword = marketingKeywords.some(keyword => lowerText.includes(keyword));
-        
-        // Use a simple check - either it contains "marketing" explicitly or we force it to use a topic
-        const isExplicitMarketingRequest = lowerText.includes('marketing');
-        //const shouldUseWebhook = (hasCompetitorKeyword && hasProductKeyword) || hasMarketingKeyword;
-        const shouldUseWebhook = true;
-        if (shouldUseWebhook) {
-          console.log("Request analysis:", {
-            text: newtext,
-            lowerText,
-            hasCompetitorKeyword,
-            hasProductKeyword,
-            hasMarketingKeyword,
-            matchedMarketingKeywords: marketingKeywords.filter(kw => lowerText.includes(kw)),
-            matchedProductKeywords: productKeywords.filter(kw => lowerText.includes(kw))
-          });
-          
-          // If it's a marketing analysis request, use a direct API call instead of callN8nWebhook
-          if (isExplicitMarketingRequest) {
-            const analysisMessage = "Ik start een marketinganalyse...";
-            const analysisReadyMessage = "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.";
-            const defaultTitle = "Marketinganalyse Rapport";
-              const reportTypeValue = "marketing_analysis";
-            try {
-              
-              
-              // Log that we're processing a marketing analysis with direct API call
-              console.log("Processing MARKETING analysis request with direct API call");
-              
-              // Add a message indicating we're starting the analysis
-              setMessages(prev => [...prev, {
-                message: analysisMessage,
-                sender: "AI"
-              }]);
-              // Show a loading report initially
-              setReportContent(`
-              <div style="color: #fff; padding: 20px;">
-              <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-              <p>De marketinganalyse wordt gegenereerd...</p>
-              <div style="display: flex; justify-content: center; margin: 30px 0;">
+        // Initial loading state for report
+        setReportContent(`
+          <div style="color: #fff; padding: 20px; text-align: center;">
+            <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
+            <div style="display: flex; justify-content: center; margin: 30px 0;">
               <div style="width: 50px; height: 50px; border: 5px solid #333; border-radius: 50%; border-top-color: #60a5fa; animation: spin 1s linear infinite;"></div>
-              </div>
-              <style>
+            </div>
+            <p>Marketing analyse wordt gegenereerd...</p>
+            <style>
               @keyframes spin { to { transform: rotate(360deg); } }
-              </style>
-              </div>
-              `);
-              setReportTitle(defaultTitle);
-              setReportType(reportTypeValue);
-              setShowDraftReport(true);
-              setIsPlanning(true);
-              
-              // Direct API call to the marketing webhook
-              const response = await axios({
-                method: 'POST',
-                url: 'https://n8n.gcp.siriusai.nl/webhook/master_multi_agent',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                data: {
-                  query: {
-                    topic: "marketing_analysis",
-                    content: newtext
-                  }
-                },
-                timeout: 500000 // 2 minutes timeout
-              });
-              const checkStatus = async (jobId) => {
-                const status = await axios.get(`${API_URL}/status/${jobId}`);
-                if (status.data.complete) {
-                  // Now show the completion message
-                  setMessages(prev => [...prev, {
-                    message: analysisReadyMessage,
-                    sender: "AI"
-                  }]);
-                } else {
-                  // Check again in a few seconds
-                  setTimeout(() => checkStatus(jobId), 3000);
-                }
-              };
-              console.log("Marketing API response received");
-              console.log("Response status:", response.status);
-              console.log("Response type:", typeof response.data);
-              console.log("RAW RESPONSE:", response);
-              
-              // Better content extraction logic
-              console.log("Marketing API response received");
-  console.log("Response status:", response.status);
-  console.log("Response type:", typeof response.data);
-  // Replace the problematic content extraction code with this fixed version
-  // Starting around line 303-305
-
-  console.log("Marketing API response received");
-  console.log("Response status:", response.status);
-  console.log("Response type:", typeof response.data);
-
-
-  console.log("Marketing API response received");
-  console.log("Response status:", response.status);
-
-  // Log the complete raw response for debugging
-  console.log("RAW RESPONSE:", response);
-
-  // Define responseData and initialize with fallback content
-  const responseData = response.data;
-  let contentFound = false;
-  let htmlContent = `
-    <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-      <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-      <div style="background-color: rgba(255, 0, 0, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ff5555; margin-bottom: 20px;">
-        <h2 style="color: #ff5555; margin-top: 0;">Geen content gevonden</h2>
-        <p>Er kon geen content worden opgehaald uit de API-respons. Probeer het later opnieuw.</p>
-      </div>
-    </div>
-  `;
-  console.log("Full response:", JSON.stringify(responseData, null, 2));
-
-  // Try all possible ways to extract content
-  try {
-    if (Array.isArray(responseData) && responseData.length > 0) {
-      console.log("Response is an array with", responseData.length, "items");
-      
-      // Check the first item for the output field
-      const firstItem = responseData[0];
-      if (firstItem && firstItem.output) {
-        const outputText = firstItem.output;
-        
-        // Convert the markdown-like text to HTML
-        htmlContent = `
-          <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-            <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-            <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
-              ${formatContentToHtml(outputText)}
-            </div>
+            </style>
           </div>
-        `;
-        contentFound = true;
-        console.log("Extracted content from array[0].output");
-      }
-    }
-
-    else if (responseData && responseData.output) {
-      // Get the output text and replace newlines with <br> tags
-      const outputText = responseData.output;
-      
-      // Format text into HTML with proper styling
-      htmlContent = `
-        <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-          <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-          <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
-            ${formatContentToHtml(outputText)}
-          </div>
-        </div>
-      `;
-      contentFound = true;
-      console.log("Extracted and formatted content from output field");
-    }
-    else if (typeof responseData === 'string') {
-      // If the entire response is a string
-      htmlContent = `
-        <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-          <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-          <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px;">
-            ${responseData.replace(/\n/g, '<br>')}
-          </div>
-        </div>
-      `;
-      contentFound = true;
-      console.log("Using direct response string");
-    } 
-    else if (responseData && typeof responseData === 'object') {
-      console.log("Response keys:", Object.keys(responseData));
-      
-      // First, check for output which is what your n8n is returning
-      if (responseData.output) {
-        const outputText = responseData.output;
-        htmlContent = `
-          <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-            <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-            <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6; white-space: pre-wrap;">
-              ${outputText}
-            </div>
-          </div>
-        `;
-        contentFound = true;
-        console.log("Extracted content from output field");
-      }
-      
-      // Then check for nested data or other fields if needed
-      else {
-        const possibleFields = ['html', 'text', 'output', 'content', 'result', 'data', 'message', 'response'];
-        for (const field of possibleFields) {
-          if (responseData[field]) {
-            const fieldContent = responseData[field];
-            const textContent = typeof fieldContent === 'string' ? fieldContent : JSON.stringify(fieldContent, null, 2);
-            
-            htmlContent = `
-              <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-                <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-                <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6; white-space: pre-wrap;">
-                  ${textContent.replace(/\n/g, '<br>')}
-                </div>
-              </div>
-            `;
-            contentFound = true;
-            console.log(`Extracted content from ${field} field`);
-            break;
-          }
-        }
-      }
-      
-      // If nothing matched, but we have a valid response, show the raw data
-      if (!contentFound && Object.keys(responseData).length > 0) {
-        htmlContent = `
-          <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-            <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-            <div style="background-color: rgba(255, 255, 255, 0.05); border-radius: 8px; padding: 16px; margin-bottom: 20px; line-height: 1.6;">
-              <h3>Ruwe API-gegevens:</h3>
-              <pre style="white-space: pre-wrap; overflow-wrap: break-word;">${JSON.stringify(responseData, null, 2)}</pre>
-            </div>
-          </div>
-        `;
-        contentFound = true;
-        console.log("Using raw response data");
-      }
-    }
-  } catch (extractionError) {
-    console.error("Error during content extraction:", extractionError);
-  }
-  // Helper function to convert the markdown-like format to HTML
-  // Better HTML formatting function for the report
-  // Better HTML formatting function for the report
-  // Better HTML formatting function for the report
-  function formatContentToHtml(text) {
-    if (!text) return '';
-    
-    let html = text;
-    
-    // Step 1: Extract sections by finding all bold headings
-    const sections = [];
-    const sectionRegex = /\*\*(.*?)\*\*/g;
-    let match;
-    let lastIndex = 0;
-    
-    // Find all section headings
-    while ((match = sectionRegex.exec(html)) !== null) {
-      const headingText = match[1];
-      const startIndex = match.index;
-      
-      // If this isn't the first heading, add the previous section's content
-      if (startIndex > lastIndex) {
-        const prevHeadingEnd = lastIndex > 0 ? lastIndex + sections[sections.length - 1].heading.length + 4 : 0;
-        const content = html.substring(prevHeadingEnd, startIndex).trim();
+        `);
         
-        if (sections.length > 0) {
-          sections[sections.length - 1].content = content;
-        }
-      }
-      
-      sections.push({
-        heading: headingText,
-        content: '',
-        index: startIndex
-      });
-      
-      lastIndex = startIndex;
-    }
+        // Set initial report states
+        setReportTitle(defaultTitle);
+        setReportType(reportTypeValue);
+        setShowDraftReport(true);
+        setIsPlanning(true);
     
-    // Add the content for the last section
-    if (sections.length > 0) {
-      const lastSection = sections[sections.length - 1];
-      const startIndex = lastSection.index + lastSection.heading.length + 4; // +4 for the '**' on both sides
-      lastSection.content = html.substring(startIndex).trim();
-    }
-    
-    // Step 2: Convert each section to properly formatted HTML
-    let formattedHtml = '';
-    
-    for (const section of sections) {
-      // Format the section heading (main sections vs subsections)
-      let headingHtml = '';
-      
-      if (section.heading === 'Eindrapport: Online Strategie voor Swiss Sense' || 
-          section.heading === 'Marketinganalyse Rapport') {
-        // Main title
-        headingHtml = `<h1 class="text-2xl font-bold text-white mb-4">${section.heading}</h1>`;
-      } else {
-        // Section heading
-        headingHtml = `<h2 class="text-xl font-bold text-blue-400 mt-6 mb-3">${section.heading}</h2>`;
-      }
-      
-      // Format the section content
-      let contentHtml = section.content;
-      
-      // Format bullet points
-      if (contentHtml.includes('*   ')) {
-        // Start a list
-        let listHtml = '<ul class="list-disc pl-6 space-y-2 my-3">';
-        
-        // Split by bullet points
-        const listItems = contentHtml.split('*   ').filter(item => item.trim());
-        
-        for (const item of listItems) {
-          // Clean up the list item and add it to the HTML
-          const cleanItem = item.trim();
-          listHtml += `<li>${cleanItem}</li>`;
-        }
-        
-        // Close the list
-        listHtml += '</ul>';
-        
-        // Replace the original bulleted text with the HTML list
-        contentHtml = listHtml;
-      } else {
-        // For regular paragraphs, add spacing
-        const paragraphs = contentHtml.split('\n\n');
-        contentHtml = paragraphs.map(p => `<p class="mb-3">${p.replace(/\n/g, '<br>')}</p>`).join('');
-      }
-      
-      // Add the formatted section to the output
-      formattedHtml += headingHtml + contentHtml;
-    }
-    
-    // If there are no sections (unusual case), just format the whole text
-    if (sections.length === 0) {
-      formattedHtml = `<p>${html.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>')}</p>`;
-    }
-    
-    // Final formatting touches for specific sections
-    formattedHtml = formattedHtml
-      // Style market share data
-      .replace(/Swiss Sense market share: ([\d.]+)%/g, 'Swiss Sense market share: <span class="text-green-400 font-bold">$1%</span>')
-      // Highlight competitors
-      .replace(/(Leading competitor:) ([^<]+)/g, '$1 <span class="text-yellow-300">$2</span>')
-      // Format strong performers
-      .replace(/(Swiss Sense is a strong performer)/g, '<span class="text-green-400">$1</span>')
-      // Highlight exposure metrics
-      .replace(/(Exposure: [\d,]+)/g, '<span class="text-gray-400">$1</span>');
-    
-    return `<div class="bg-gray-800 text-white p-4 rounded-lg">${formattedHtml}</div>`;
-  }
-
-  // To use this in your code:
-  if (Array.isArray(responseData) && responseData.length > 0) {
-    console.log("Response is an array with", responseData.length, "items");
-    
-    // Check the first item for the output field
-    const firstItem = responseData[0];
-    if (firstItem && firstItem.output) {
-      const outputText = firstItem.output;
-      
-      // Convert the markdown-like text to HTML with enhanced formatting
-      htmlContent = formatContentToHtml(outputText);
-      contentFound = true;
-      console.log("Extracted and formatted content from array[0].output");
-    }
-  }
-
-  // Set the report content
-  setReportContent(ensureCompleteHtml(htmlContent));
-
-  // Final check - if we still don't have content, set a clear error message
-  if (!contentFound) {
-    console.warn("No content could be extracted from the response");
-  }
-
-  // Set the report content
-  setReportContent(ensureCompleteHtml(htmlContent));
-
-
-
-  // Log the final content
-  console.log("Final HTML content length:", htmlContent?.length || 0);
-  if (htmlContent?.length > 0) {
-    console.log("HTML content preview:", htmlContent.substring(0, 200));
-  }
-
-  // Set report content once, after all processing is done
-  setReportContent(ensureCompleteHtml(htmlContent));
-  setReportTitle(defaultTitle);
-  setReportType(reportTypeValue);
-  setShowDraftReport(true);
-  setIsPlanning(true);
-
-  // Update the user message based on content found
-  setMessages(prev => [...prev, {
-    message: contentFound ? 
-      analysisReadyMessage : 
-      "Er is een beperkt rapport gegenereerd. Je kunt het bekijken aan de rechterkant, maar probeer het later nog eens voor een vollediger resultaat.",
-    sender: "AI"
-  }]);
-
-              
-            } catch (error) {
-              console.error("Marketing API error:", error);
-              // Create more informative error report
-              const errorReport = `
-                <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
-                  <h1 style="font-size: 24px; margin-bottom: 20px;">Marketinganalyse Rapport</h1>
-                  <div style="background: rgba(255, 0, 0, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ff0000; margin-bottom: 20px;">
-                    <h2 style="margin-top: 0; color: #ff5555;">Er is een fout opgetreden</h2>
-                    <p><strong>Fouttype:</strong> ${error.name || 'Unknown Error'}</p>
-                    <p><strong>Foutmelding:</strong> ${error.message || 'Geen details beschikbaar'}</p>
-                    <p><strong>Status:</strong> ${error.response?.status || 'N/A'}</p>
-                  </div>
-                  <div style="margin-top: 20px;">
-                    <h3>Suggesties om het probleem op te lossen:</h3>
-                    <ul style="list-style-type: disc; margin-left: 20px; line-height: 1.5;">
-                      <li>Controleer je internetverbinding</li>
-                      <li>Vernieuw de pagina en probeer het opnieuw</li>
-                      <li>Als het probleem aanhoudt, probeer het later nog eens</li>
-                    </ul>
-                  </div>
-                </div>
-              `;
-              
-              setReportContent(errorReport);
-              setReportTitle(defaultTitle);
-              setReportType(reportTypeValue);
-              setShowDraftReport(true);
-              setIsPlanning(true);
-              
-              setMessages(prev => [...prev, {
-                message: "Er is een fout opgetreden bij het uitvoeren van de marketinganalyse. Je kunt de details bekijken in het rapport aan de rechterkant.",
-                sender: "AI"
-              }]);
-            }
-          } 
-            
-          else {
-            // For competitor analysis, use the existing webhook function
-            try {
-              const analysisMessage = "Ik start een concurrentieanalyse voor bedden en matrassen...";
-              const analysisReadyMessage = "Je concurrentieanalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.";
-              const defaultTitle = "Concurrentieanalyse van de Bedden- en Matrassenmarkt";
-              const reportTypeValue = "competitor_analysis";
-              
-              // Log that we're processing a competitor analysis
-              console.log("Processing COMPETITOR analysis request");
-              
-              // Add a message indicating we're using the n8n workflow
-              setMessages(prev => [...prev, {
-                message: analysisMessage,
-                sender: "AI"
-              }]);
-              
-              // Call the webhook and process the response
-              const webhookResponse = await callN8nWebhook("competitor_analysis", newtext);
-              console.log("Webhook response received:", webhookResponse);
-                
-              if (webhookResponse && webhookResponse.html) {
-                const cleanedContent = cleanJsxCode(webhookResponse.html);
-                // Use the HTML content from the webhook response
-                setReportContent(webhookResponse.html);
-                setReportTitle(webhookResponse.title || defaultTitle);
-                setReportType(reportTypeValue);
-                setShowDraftReport(true);
-                
-                // Set the planning state to true to show the right panel
-                setIsPlanning(true);
-                
-                // Notify the user that the report is ready
-                setMessages(prev => [...prev, {
-                  message: analysisReadyMessage,
-                  sender: "AI"
-                }]);
-              } else {
-                console.error("Invalid webhook response format:", webhookResponse);
-                // Fallback content in case the webhook doesn't return the expected format
-                setReportContent(`
-                  <div style="color: #fff; padding: 20px;">
-                    <h1 style="font-size: 24px; margin-bottom: 20px;">${defaultTitle}</h1>
-                    <p>Er kon geen gedetailleerd rapport worden gegenereerd. Probeer het later opnieuw.</p>
-                  </div>
-                `);
-                setReportTitle(defaultTitle);
-                setReportType(reportTypeValue);
-                setShowDraftReport(true);
-                setIsPlanning(true);
-                
-                // Notify the user about the issue
-                setMessages(prev => [...prev, {
-                  message: "Er is een probleem opgetreden bij het genereren van de analyse, maar ik heb een eenvoudig rapport gemaakt dat je aan de rechterkant kunt bekijken.",
-                  sender: "AI"
-                }]);
-              }
-            } catch (error) {
-              console.error("n8n webhook error:", error);
-              setMessages(prev => [...prev, {
-                message: "Er is een fout opgetreden bij het uitvoeren van de analyse. Probeer het later nog eens.",
-                sender: "AI"
-              }]);
-            }
-          }
-        } else {
-          // Regular message handling with WebSocket
-          if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-            wsRef.current.send(JSON.stringify({ message: newtext }));
-          } else {
-            setError("WebSocket is not connected.");
-            setMessages(prev => [...prev, {
-              message: "Sorry, de verbinding is verbroken. Probeer het opnieuw.",
-              sender: "AI"
-            }]);
-          }
-        }
-      } catch (error) {
-        setError("Failed to send message. Please try again.");
-        console.error("Message handling error:", error);
+        // Add loading message to chat
         setMessages(prev => [...prev, {
-          message: "Er is een fout opgetreden. Probeer het opnieuw.",
+          message: analysisMessage,
           sender: "AI"
         }]);
+    
+        // Perform API call to marketing webhook
+        const response = await axios({
+          method: 'POST',
+          url: 'https://n8n.gcp.siriusai.nl/webhook/master_multi_agent',
+          headers: { 'Content-Type': 'application/json' },
+          data: { 
+            query: { 
+              topic: "marketing_analysis", 
+              content: newtext 
+            } 
+          },
+          timeout: 500000
+        });
+    
+        // Robust response parsing function
+        const parseResponseData = (data) => {
+          // Handle string input
+          if (typeof data === 'string') {
+            try {
+              // Try to parse as JSON, handling potential escaping
+              data = JSON.parse(data.replace(/\\n/g, '').replace(/\\"/g, '"'));
+            } catch (parseError) {
+              console.error('JSON parsing error:', parseError);
+              return { error: 'Invalid JSON response' };
+            }
+          }
+        
+          // Ensure data is an object
+          return typeof data === 'object' ? data : { error: 'Invalid response format' };
+        };
+    
+        // Comprehensive HTML content generation
+        const generateHtmlContent = (data, defaultTitle) => {
+          // Helper function to safely extract nested data
+          const safeGet = (obj, path, defaultValue = '') => {
+            return path.split('.').reduce((acc, part) => 
+              acc && acc[part] !== undefined ? acc[part] : defaultValue, obj);
+          };
+        
+          // Try to extract market overview data
+          const marketOverview = safeGet(data, 'data.marketOverview', {});
+          const segments = safeGet(marketOverview, 'segments', []);
+          const totalSearchVolume = safeGet(marketOverview, 'totalSearchVolume', 0);
+          const totalCommercialValue = safeGet(marketOverview, 'totalCommercialValue', 0);
+    
+            // Check for output field
+            // Generate HTML content
+  return `
+  <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif; background: linear-gradient(to right, #6e8efb, #a777e3); border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);">
+    <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; text-align: center;">
+      ${safeGet(data, 'title', 'Swiss Sense Market Analysis')}
+    </h1>
+    
+    <p style="font-size: 16px; line-height: 1.5; margin-bottom: 20px; text-align: center;">
+      This analysis provides insights into the bedding market, highlighting key segments, competitive positioning.
+    </p>
+    
+    <div style="margin-bottom: 30px;">
+      <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">Market Overview</h2>
+      <p style="font-size: 14px; margin-bottom: 5px;">
+        <strong>Total Search Volume:</strong> ${totalSearchVolume.toLocaleString()}
+      </p>
+      <p style="font-size: 14px; margin-bottom: 5px;">
+        <strong>Total Commercial Value:</strong> €${totalCommercialValue.toLocaleString()}
+      </p>
+      
+      <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+        <thead style="background-color: rgba(255,255,255,0.1);">
+          <tr style="font-weight: bold;">
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.3);">Segment</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.3);">Search Volume</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.3);">Percentage</th>
+            <th style="padding: 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.3);">Commercial Value</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${segments.map(segment => `
+            <tr>
+              <td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${segment.name}</td>
+              <td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${segment.searchVolume.toLocaleString()}</td>
+              <td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">${segment.percentage}%</td>
+              <td style="padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);">€${segment.commercialValue.toLocaleString()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+    
+    <div style="margin-bottom: 30px;">
+      <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">Keyword Distribution</h2>
+      <p style="font-size: 14px; margin-bottom: 5px;">
+        <strong>Branded Keywords:</strong> ${safeGet(data, 'data.keywordDistribution.branded.count', 0)} 
+        (Volume: ${safeGet(data, 'data.keywordDistribution.branded.volume', 0).toLocaleString()})
+      </p>
+      <p style="font-size: 14px; margin-bottom: 5px;">
+        <strong>Non-Branded Keywords:</strong> ${safeGet(data, 'data.keywordDistribution.nonBranded.count', 0)} 
+        (Volume: ${safeGet(data, 'data.keywordDistribution.nonBranded.volume', 0).toLocaleString()})
+      </p>
+    </div>
+    
+    <div style="margin-bottom: 30px;">
+      <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 10px;">Summary</h2>
+      <p style="font-size: 14px; line-height: 1.5;">
+        The bedding market shows significant search volume, with a substantial portion driven by non-branded keywords. 
+        This presents an opportunity for Swiss Sense to expand its reach through targeted SEO and content strategies.
+      </p>
+    </div>
+  </div>
+`;
+};
+
+    
+        // Process the response
+        const responseData = parseResponseData(response.data);
+        
+        // Generate HTML content
+        const htmlContent = generateHtmlContent(responseData, defaultTitle);
+    
+        // Update report content
+        setReportContent(htmlContent);
+        setReportTitle(responseData.title || defaultTitle);
+        setReportType(reportTypeValue);
+        setShowDraftReport(true);
+        setIsPlanning(true);
+    
+        // Notify user of completion
+        setMessages(prev => [...prev, {
+          message: analysisReadyMessage,
+          sender: "AI"
+        }]);
+    
+      } catch (error) {
+        console.error("Marketing API error:", error);
+        
+        // Detailed error reporting
+        const errorReport = `
+          <div style="color: #fff; padding: 20px; font-family: Arial, sans-serif;">
+            <h1 style="font-size: 24px; margin-bottom: 20px;">Fout bij Marketinganalyse</h1>
+            <div style="background: rgba(255, 0, 0, 0.1); padding: 16px; border-radius: 8px; border-left: 4px solid #ff5555; margin-bottom: 20px;">
+              <h2 style="color: #ff5555; margin-top: 0;">Analyse mislukt</h2>
+              <p><strong>Fouttype:</strong> ${error.name || 'Onbekende fout'}</p>
+              <p><strong>Foutmelding:</strong> ${error.message || 'Geen details beschikbaar'}</p>
+              <p><strong>Status:</strong> ${error.response?.status || 'N/A'}</p>
+              ${error.response?.data ? `
+                <details style="margin-top: 10px;">
+                  <summary>Gedetailleerde foutinformatie</summary>
+                  <pre style="white-space: pre-wrap; background: rgba(0,0,0,0.1); padding: 10px; border-radius: 5px;">
+                    ${JSON.stringify(error.response.data, null, 2)}
+                  </pre>
+                </details>
+              ` : ''}
+            </div>
+          </div>
+        `;
+        
+        // Set error content
+        setReportContent(errorReport);
+        setReportTitle("Marketinganalyse Rapport");
+        setReportType("marketing_analysis");
+        setShowDraftReport(true);
+        setIsPlanning(true);
+        
+        // Add error message to chat
+        setMessages(prev => [...prev, {
+          message: "Er is een fout opgetreden bij het uitvoeren van de marketinganalyse. Je kunt de details bekijken in het rapport aan de rechterkant.",
+          sender: "AI"
+        }]);
+    
       } finally {
+        // Reset processing states
         setIsType(false);
         setIsChatLoading(false);
         setIsAIType(false);
       }
     };
+            
+         
     //End of handleMessage function
     const downloadReportAsWord = () => {
       try {
