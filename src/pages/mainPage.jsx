@@ -18,6 +18,10 @@
   } from "react-icons/fa";
   // Import the callN8nWebhook function
   import { callN8nWebhook } from "@/hooks/webhookService";
+  //import {MarketingReportRenderer} from '@/components/MarketingReportRenderer';
+  //import { processMarketingReport } from '@/components/table-generator';
+  import { generateTable, generateList } from '@/components/TableUtils';
+  import { processMarketingReport } from '@/components/reportUtils';
 
   const safeParseJson = (json) => {
     try {
@@ -344,279 +348,100 @@
     // Updated Message handler with n8n integration
     // Replace your current handleMessage function with this approach
     // Updated handleMessage function with direct processing (no processReportInChunks reference)
-    const handleMessage = async () => {
-      if (isType || !newtext.trim()) return;
+    // Updated handleMessage function with new report rendering approach
+const handleMessage = async () => {
+  if (isType || !newtext.trim()) return;
+
+  // Add message to UI immediately
+  setMessages((prevMessages) => [
+    ...prevMessages,
+    { message: newtext, sender: "user" },
+  ]);
+  
+  setIsType(true);
+  setNewtext("");
+  setIsChatLoading(true);
+  setIsAIType(true);
+
+  try {
+    // First, immediately show a placeholder report
+    setReportTitle("Marketing Analysis");
+    setReportType("marketing_analysis");
+    setShowDraftReport(true);
+    setIsPlanning(true);
     
-      // Add message to UI immediately
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { message: newtext, sender: "user" },
-      ]);
-      
-      setIsType(true);
-      setNewtext("");
-      setIsChatLoading(true);
-      setIsAIType(true);
+    // Show a simple placeholder while loading
+    setReportContent(`
+      <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+        <h1 style="text-align:center;">Swiss Sense Market Analysis</h1>
+        <div style="text-align:center; padding:40px 20px;">
+          <p style="font-size:16px; margin-bottom:20px;">Analyzing marketing data for SwissSense...</p>
+          <p>This may take a minute to complete. The report will appear here automatically.</p>
+        </div>
+      </div>
+    `);
+
+    // Notify user that analysis is underway
+    setMessages(prev => [...prev, {
+      message: "Je marketinganalyse wordt voorbereid. Een moment geduld alstublieft...",
+      sender: "AI"
+    }]);
+
+    // Now make the actual API call
+    const response = await axios({
+      method: 'POST',
+      url: 'https://n8n.gcp.siriusai.nl/webhook/market-master-2-ui',
+      headers: { 'Content-Type': 'application/json' },
+      data: { 
+        query: { 
+          topic: "marketing_analysis", 
+          content: newtext 
+        } 
+      },
+      timeout: 500000
+    });
+    // In handleMessage, after the API call
+    console.log("API response type:", typeof response.data);
+    console.log("API response structure:", Object.keys(response.data));
+    console.log("API RESPONSE:", response.data);
     
-      try {
-        // First, immediately show a placeholder report
-        setReportTitle("Marketing Analysis");
-        setReportType("marketing_analysis");
-        setShowDraftReport(true);
-        setIsPlanning(true);
-        
-        // Show a simple placeholder while loading
-        setReportContent(`
-          <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
-            <h1>Swiss Sense Market Analysis</h1>
-            <div style="text-align:center; padding:40px 20px;">
-              <p style="font-size:16px; margin-bottom:20px;">Analyzing marketing data for SwissSense...</p>
-              <p>This may take a minute to complete. The report will appear here automatically.</p>
-            </div>
-          </div>
-        `);
+    // Process the report data
+    const reportHtml = processMarketingReport(response.data);
     
-        // Notify user that analysis is underway
-        setMessages(prev => [...prev, {
-          message: "Je marketinganalyse wordt voorbereid. Een moment geduld alstublieft...",
-          sender: "AI"
-        }]);
+    // Update the report content with processed HTML
+    setReportContent(reportHtml);
+
+    // Notify user of completion
+    setMessages(prev => [...prev, {
+      message: "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
+      sender: "AI"
+    }]);
+  } catch (error) {
+    console.error("API Error:", error);
     
-        // Now make the actual API call
-        const response = await axios({
-          method: 'POST',
-          url: 'https://n8n.gcp.siriusai.nl/webhook/market-master-2-ui',
-          headers: { 'Content-Type': 'application/json' },
-          data: { 
-            query: { 
-              topic: "marketing_analysis", 
-              content: newtext 
-            } 
-          },
-          timeout: 500000
-        });
+    // Display error in report
+    setReportContent(`
+      <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
+        <h1 style="text-align:center;">Error Processing Report</h1>
+        <div style="background: rgba(255, 255, 255, 0.1); padding: 20px; border-radius: 8px; margin-top: 20px;">
+          <p><strong>Error Type:</strong> ${error.name}</p>
+          <p><strong>Message:</strong> ${error.message}</p>
+          <p><strong>Status:</strong> ${error.response?.status || 'Unknown'}</p>
+        </div>
+      </div>
+    `);
     
-        console.log("FULL RESPONSE:", JSON.stringify(response, null, 2));
-        console.log("RESPONSE DATA TYPE:", typeof response.data);
-        console.log("RESPONSE DATA:", JSON.stringify(response.data, null, 2));
-    
-        // Use your existing parsing logic
-        const parseData = (data) => {
-          if (Array.isArray(data) && data[0]) {
-            try {
-              // Multiple attempts to parse
-              const possibleOutputs = [
-                data[0].output,
-                data[0].data,
-                JSON.stringify(data[0])
-              ];
-    
-              for (let output of possibleOutputs) {
-                if (!output) continue;
-    
-                // Remove markdown markers
-                output = output
-                  .replace(/```json\n?/g, '')
-                  .replace(/```$/g, '')
-                  .trim();
-    
-                try {
-                  const parsed = JSON.parse(output);
-                  console.log("SUCCESSFULLY PARSED:", parsed);
-                  return parsed;
-                } catch (parseError) {
-                  console.warn("Parse attempt failed:", parseError);
-                }
-              }
-            } catch (error) {
-              console.error("Parsing Error:", error);
-            }
-          }
-          return data;
-        };
-    
-        const parsedData = parseData(response.data);
-        console.log("PARSED DATA:", JSON.stringify(parsedData, null, 2));
-    
-        // Check for HTML structure in the response (new format)
-        if (parsedData?.keyword_analysis_report?.html_report) {
-          console.log("Found HTML report structure in response");
-          
-          // Extract sections
-          const htmlReport = parsedData.keyword_analysis_report.html_report;
-          
-          if (htmlReport.progressive_sections?.overview) {
-            // First show just the overview section
-            setReportContent(`
-              <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
-                <h1 style="text-align:center;">Swiss Sense Market Analysis</h1>
-                ${htmlReport.progressive_sections.overview}
-                <div id="loading-indicator" style="text-align:center; padding:20px; margin-top:20px; background:rgba(255,255,255,0.1); border-radius:8px;">
-                  <p>Loading more sections...</p>
-                </div>
-              </div>
-            `);
-            
-            // Show progress message
-            setMessages(prev => [...prev, {
-              message: "De eerste resultaten zijn beschikbaar. De rest van het rapport wordt geladen...",
-              sender: "AI"
-            }]);
-            
-            // After a short delay, show the full report
-            setTimeout(() => {
-              if (htmlReport.full_report) {
-                setReportContent(htmlReport.full_report);
-              } else {
-                // Fallback to combining sections
-                setReportContent(`
-                  <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
-                    <h1 style="text-align:center;">Swiss Sense Market Analysis</h1>
-                    ${htmlReport.progressive_sections.overview || ''}
-                    ${htmlReport.progressive_sections.segments || ''}
-                    ${htmlReport.progressive_sections.keywords || ''}
-                  </div>
-                `);
-              }
-              
-              // Show completion message
-              setMessages(prev => [...prev, {
-                message: "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
-                sender: "AI"
-              }]);
-            }, 1500);
-          } else if (htmlReport.full_report) {
-            // If no progressive sections, just show the full report
-            setReportContent(htmlReport.full_report);
-            
-            setMessages(prev => [...prev, {
-              message: "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
-              sender: "AI"
-            }]);
-          }
-        } else {
-          // Fallback to the original client-side HTML generation
-          console.log("No HTML report in response, generating HTML client-side");
-          
-          
-          // Extract the report structure
-          const report = parsedData?.keyword_analysis_report;
-          if (!report) {
-            console.error("No report data found in parsed response");
-            setReportContent(`
-              <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
-                <h1>Swiss Sense Market Analysis</h1>
-                <div style="text-align:center; padding:20px; background:rgba(255,255,255,0.1); border-radius:8px;">
-                  <p>No report data found in the response. Please try again.</p>
-                </div>
-              </div>
-            `);
-            
-            setMessages(prev => [...prev, {
-              message: "Er is een probleem met de data van de analyse. Probeer het opnieuw.",
-              sender: "AI"
-            }]);
-            
-            return;
-          }
-          
-          const overview = report.market_overview || {};
-          
-          // First stage - show overview
-          setReportContent(`
-            <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
-              <h1>Swiss Sense Market Analysis</h1>
-              
-              <h2>Market Overview</h2>
-              <p>Total Search Volume: ${overview.total_search_volume || 'N/A'}</p>
-              <p>Total Commercial Value: ${overview.total_commercial_value || 'N/A'}</p>
-              
-              <div id="loading-indicator" style="text-align:center; padding:20px; margin-top:20px; background:rgba(255,255,255,0.1); border-radius:8px;">
-                <p>Loading report sections...</p>
-              </div>
-            </div>
-          `);
-          
-          // Notify user of progress
-          setMessages(prev => [...prev, {
-            message: "De eerste resultaten zijn beschikbaar. De rest van het rapport wordt geladen...",
-            sender: "AI"
-          }]);
-          
-          // After a short delay, render the full report
-          setTimeout(() => {
-            try {
-              // Use your original report generation function
-              const html = `
-                <div style="padding:20px; font-family: Arial, sans-serif; color:#fff; background: linear-gradient(to right, #6e8efb, #a777e3);">
-                  <h1>Swiss Sense Market Analysis</h1>
-            
-                  <h2>Market Overview</h2>
-                  <p>Total Search Volume: ${overview.total_search_volume || 'N/A'}</p>
-                  <p>Total Commercial Value: ${overview.total_commercial_value || 'N/A'}</p>
-                  ${generateTable('Segments Breakdown', overview.segment_breakdown || [], ['segment', 'search_volume', 'percentage', 'commercial_value'])}
-            
-                  <h2>Branded vs Non-Branded Keywords</h2>
-                  ${generateList(report.branded_vs_non_branded || {})}
-            
-                  <h2>Top 10 Keywords by Search Volume & Commercial Value</h2>
-                  ${generateTable('', report.top_10_keywords || [], ['keyword', 'search_volume', 'commercial_value'])}
-            
-                  <h2>Trend Analysis</h2>
-                  ${generateTable('', report.trend_analysis || [], ['segment', '2021', '2022', '2023', '2024', '2025 (partial)', 'YoY Change (explicitly latest available)'])}
-            
-                  <h2>Competitive Positioning</h2>
-                  ${generateTable('', report.competitive_positioning || [], ['segment', 'top_performer', 'SwissSense.nl_marktaandeel', 'prestatiekloof'])}
-            
-                  <h2>Growth Potential</h2>
-                  ${generateTable('', report.growth_potential || [], ['segment', 'current_volume', 'commercial_value', 'growth_potential'])}
-            
-                  <h2>Strategic Recommendations</h2>
-                  ${generateList(report.strategic_recommendations || [])}
-            
-                  <h2>Data Limitations</h2>
-                  ${generateList(report.data_limitations || [])}
-                </div>
-              `;
-              
-              setReportContent(html);
-              
-              // Final notification
-              setMessages(prev => [...prev, {
-                message: "Je marketinganalyse is klaar. Je kunt het rapport aan de rechterkant bekijken.",
-                sender: "AI"
-              }]);
-            } catch (error) {
-              console.error("Error rendering full report:", error);
-              setMessages(prev => [...prev, {
-                message: "Er is een fout opgetreden bij het genereren van het volledige rapport: " + error.message,
-                sender: "AI"
-              }]);
-            }
-          }, 1500);
-        }
-      } catch (error) {
-        console.error("COMPLETE ERROR:", error);
-        
-        setReportContent(`
-          <div style="color: white; padding: 20px;">
-            <h1>Analyse mislukt</h1>
-            <p><strong>Fouttype:</strong> ${error.name}</p>
-            <p><strong>Foutmelding:</strong> ${error.message}</p>
-            <p><strong>Status:</strong> ${error.response?.status || 'Onbekend'}</p>
-          </div>
-        `);
-        
-        setMessages(prev => [...prev, {
-          message: `Er is een fout opgetreden bij het genereren van de analyse: ${error.message}`,
-          sender: "AI"
-        }]);
-      } finally {
-        setIsType(false);
-        setIsChatLoading(false);
-        setIsAIType(false);
-      }
-    };
+    // Notify user of error
+    setMessages(prev => [...prev, {
+      message: `Er is een fout opgetreden bij het genereren van de analyse: ${error.message}`,
+      sender: "AI"
+    }]);
+  } finally {
+    setIsType(false);
+    setIsChatLoading(false);
+    setIsAIType(false);
+  }
+};
 
 
 // Function to generate the complete report (called after initial sections are shown)
@@ -626,42 +451,113 @@
     //End of handleMessage function
     const downloadReportAsWord = () => {
       try {
-        // Get the HTML content (without tags that would cause issues)
-        const cleanHtml = reportContent.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+        // Get the HTML content and sanitize it
+        const cleanHtml = reportContent ? sanitizeHtml(reportContent) : '';
         
-        // Create a Blob with the HTML content
-        const blob = new Blob([`
-          <html>
+        // Add proper Word document styling
+        const wordDocHtml = `
+          <html xmlns:o="urn:schemas-microsoft-com:office:office" 
+                xmlns:w="urn:schemas-microsoft-com:office:word" 
+                xmlns="http://www.w3.org/TR/REC-html40">
             <head>
               <meta charset="utf-8">
-              <title>Concurrentieanalyse van de Bedden- en Matrassenmarkt</title>
+              <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+              <title>Swiss Sense Market Analysis</title>
+              <!-- Word-specific styling -->
+              <!--[if gte mso 9]>
+              <xml>
+                <w:WordDocument>
+                  <w:View>Print</w:View>
+                  <w:Zoom>100</w:Zoom>
+                  <w:DoNotOptimizeForBrowser/>
+                </w:WordDocument>
+              </xml>
+              <![endif]-->
               <style>
-                body { font-family: Arial, sans-serif; color: #333; line-height: 1.6; }
-                h1 { font-size: 24px; color: #333; margin-bottom: 20px; }
-                h2 { font-size: 20px; color: #6b46c1; margin-top: 30px; margin-bottom: 15px; }
-                h3 { font-size: 16px; font-weight: bold; margin-top: 20px; }
-                p { margin-bottom: 12px; }
-                ul { margin-left: 20px; }
-                li { margin-bottom: 8px; }
-                .box { background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px; }
-                table { border-collapse: collapse; width: 100%; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                tr:nth-child(even) { background-color: #f9f9f9; }
+                /* Basic styling */
+                body {
+                  font-family: 'Calibri', sans-serif;
+                  line-height: 1.5;
+                  color: #333;
+                  margin: 1cm;
+                }
+                h1 {
+                  font-size: 18pt;
+                  color: #2e3192;
+                  text-align: center;
+                  margin-bottom: 10pt;
+                }
+                h2 {
+                  font-size: 14pt;
+                  color: #2e3192;
+                  margin-top: 12pt;
+                  margin-bottom: 8pt;
+                  border-bottom: 1pt solid #ddd;
+                  padding-bottom: 4pt;
+                }
+                p {
+                  margin-bottom: 8pt;
+                }
+                table {
+                  border-collapse: collapse;
+                  width: 100%;
+                  margin-bottom: 10pt;
+                }
+                th {
+                  background-color: #f2f2f2;
+                  font-weight: bold;
+                  text-align: left;
+                  padding: 6pt;
+                  border: 1pt solid #ddd;
+                }
+                td {
+                  padding: 6pt;
+                  border: 1pt solid #ddd;
+                }
+                tr:nth-child(even) {
+                  background-color: #f9f9f9;
+                }
+                ul, ol {
+                  margin-left: 20pt;
+                  margin-bottom: 10pt;
+                }
+                li {
+                  margin-bottom: 4pt;
+                }
+                /* Convert any background styles to Word-friendly formats */
+                .segment-header {
+                  background-color: #f0f0f0;
+                  padding: 5pt;
+                  font-weight: bold;
+                }
+                .segment-content {
+                  padding: 5pt;
+                  margin-bottom: 10pt;
+                }
               </style>
             </head>
             <body>
-              ${cleanHtml}
+              <!-- Clean up the HTML for Word - replace background gradients and colors -->
+              ${cleanHtml
+                .replace(/background:\s*linear-gradient[^;]+;/g, 'background-color: #ffffff;')
+                .replace(/background-color:\s*rgba\([^)]+\)/g, 'background-color: #f8f8f8')
+                .replace(/color:\s*#fff|color:\s*white|color:\s*#ffffff/gi, 'color: #333333')
+                .replace(/<div style="background: rgba\(255, 255, 255, 0.1\);([^>]*)>/g, '<div class="segment-content" style="$1">')
+                .replace(/<table[^>]*>/g, '<table border="1" cellspacing="0" cellpadding="5">')
+              }
             </body>
           </html>
-        `], { type: 'application/vnd.ms-word;charset=utf-8' });
+        `;
+        
+        // Create a Blob with the Word-formatted HTML content
+        const blob = new Blob([wordDocHtml], { type: 'application/msword;charset=utf-8' });
         
         // Create a link element
         const link = document.createElement('a');
         
         // Set link attributes
         link.href = URL.createObjectURL(blob);
-        link.download = 'Digital_Insights_Swiss_Sense.docx';
+        link.download = 'Swiss_Sense_Market_Analysis.doc';
         
         // Append link to the body
         document.body.appendChild(link);
@@ -673,9 +569,9 @@
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
         
-        console.log('Download triggered successfully');
+        console.log('Word document download triggered successfully');
       } catch (error) {
-        console.error('Error downloading report:', error);
+        console.error('Error downloading Word document:', error);
         alert('Er is een fout opgetreden bij het downloaden van het rapport. Probeer het later nog eens.');
       }
     };
@@ -1060,41 +956,43 @@
           transition={{ duration: 0.3 }}
         >
           {reportType === "competitor_analysis" || reportType === "marketing_analysis" ? (
-            <div className="h-full bg-[#1c1e26] overflow-y-auto">
-              <div className="flex flex-col h-full">
-                <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
-                  <h2 className="text-xl font-semibold text-white">{reportTitle}</h2>
-                  <div className="flex space-x-2">
-                    <button
-                      className="text-white bg-blue-500 hover:bg-blue-600 px-4 py-1 text-sm rounded-md"
-                      onClick={downloadReportAsWord}
-                    >
-                      Download Report (Word)
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="flex-1 p-4 overflow-y-auto">
-    {reportContent ? (
-      <div 
-        className="report-container bg-[#1c1e26] text-white p-4 rounded-lg"
-        dangerouslySetInnerHTML={{ __html: sanitizeHtml(reportContent) }}
-      />
-    ) : (
-      <div className="flex justify-center items-center h-full">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
-          <p className="text-gray-400">Rapport wordt geladen...</p>
+  <div className="h-full bg-[#1c1e26] overflow-y-auto">
+    <div className="flex flex-col h-full">
+      <div className="flex justify-between items-center px-4 py-3 border-b border-gray-700">
+        <h2 className="text-xl font-semibold text-white">{reportTitle}</h2>
+        <div className="flex space-x-2">
+          <button
+            className="text-white bg-blue-500 hover:bg-blue-600 px-4 py-1 text-sm rounded-md"
+            onClick={downloadReportAsWord}
+          >
+            Download Report (Word)
+          </button>
         </div>
       </div>
-    )}
-  </div>
-
-              </div>
+      
+      <div className="flex-1 p-4 overflow-y-auto">
+        {reportContent ? (
+          <div 
+            className="report-container bg-[#1c1e26] text-white p-4 rounded-lg"
+            dangerouslySetInnerHTML={{ 
+              __html: sanitizeHtml(ensureCompleteHtml(reportContent)) 
+            }}
+          />
+        ) : (
+          <div className="flex justify-center items-center h-full">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto mb-4"></div>
+              <p className="text-gray-400">Rapport wordt geladen...</p>
             </div>
-          ) : (
-            <Starting isPlanning={isPlanning} setIsPlanning={setIsPlanning} />
-          )}
+          </div>
+        )}
+      </div>
+    </div>
+  </div>
+) : (
+  <Starting isPlanning={isPlanning} setIsPlanning={setIsPlanning} />
+)}
+        
         </motion.div>
       )}
     </AnimatePresence>
